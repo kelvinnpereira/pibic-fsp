@@ -83,6 +83,8 @@ public class Parser {
         if(i != -1)
             a.setId(processo_atual.getAcoes().get(i).getId() + 1);
         processo_atual.getAcoes().add(a);
+        ig.addCheckBox(nome + (valor_indice == -1 ? "" : "["+valor_indice+"]"));
+        System.out.println(a);
         return processo_atual.getAcoes().get(processo_atual.getAcoes().lastIndexOf(a));
     }
 
@@ -115,10 +117,12 @@ public class Parser {
             a = primeiro.getAcoes().get(i);
         }else{
             vertice_atual = vertice_atual == null ? null : vertice_atual.buscaVizinho(nome, valor_indice, 0);
+            System.out.println(nome +", "+(vertice_atual == null ? -1 : vertice_atual.getEstado())+", "+valor_indice);
             a = achaAcao(nome, vertice_atual == null ? -1 : vertice_atual.getEstado(), valor_indice);
         }
         if(a == null) throw new Error("Trace invalido! Acao nao elegivel ou nao existe!!");
         traceArray.add(a);
+        print();
     }
 
     public boolean isNum(char c){
@@ -298,8 +302,10 @@ public class Parser {
 		
 		trace();
 		print();
+		ig.start_interface();
 		try{
 		   verificaTrace();
+		   
 		   int i;
 		   Processo p, main = processos.get(0);
 		   buff = new BufferedWriter(new FileWriter("Constantes"+main.getNome()+".java"));
@@ -882,7 +888,6 @@ public class Parser {
 			           int j = locais.lastIndexOf(pl);
 			           if(j == -1)
 			               locais.add(pl);
-			           else
 			           v = grafo.insereVertice(nome, 0, processo_atual.getEstado(), valor_expr);
 			           if(acao_atual != null){
 			               int k = processos.get(pa).getAcoes().indexOf(new Acao(acao_atual.getNome(), processos.get(pa)));
@@ -1019,6 +1024,7 @@ public class Parser {
 		if (la.kind == 39) {
 			Get();
 			boolean_expr();
+			Expect(12);
 		}
 		expressao = "";
 		
@@ -1177,7 +1183,7 @@ class Errors {
 			case 36: s = "\"|\" expected"; break;
 			case 37: s = "\"STOP\" expected"; break;
 			case 38: s = "\"ERROR\" expected"; break;
-			case 39: s = "\"when\" expected"; break;
+			case 39: s = "\"when(\" expected"; break;
 			case 40: s = "\"if\" expected"; break;
 			case 41: s = "\"then\" expected"; break;
 			case 42: s = "\"else\" expected"; break;

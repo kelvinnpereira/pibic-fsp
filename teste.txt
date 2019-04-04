@@ -1,4 +1,5 @@
-BUFF = (a[(2+4)/6] -> BUFF).
+P = P[0],
+P[i:0..3] = ( when(i <= 3) a[i] -> P[i+1]).
 TRACE
-a[1]
+a[0] -> a[1] -> a[2] -> a[3]
 ENDTRACE
