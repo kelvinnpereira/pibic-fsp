@@ -1,0 +1,6 @@
+FAULTY = ({red,blue,green}-> FAULTY 
+         |yellow -> candy -> FAULTY
+         ).
+TRACE
+red -> yellow -> candy -> blue -> yellow -> candy -> green -> yellow -> candy -> red -> red -> blue -> red -> green
+ENDTRACE

@@ -1,0 +1,4 @@
+TRAFFICLIGHT = ( red -> orange -> green -> orange -> TRAFFICLIGHT).
+TRACE
+red -> orange -> green -> orange -> red -> orange -> green -> orange -> red
+ENDTRACE

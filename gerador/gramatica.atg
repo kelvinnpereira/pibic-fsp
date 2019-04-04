@@ -1,0 +1,401 @@
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.File;
+import java.util.ArrayList;
+
+COMPILER FSP $F
+
+
+    public BufferedWriter buff;
+    public ArrayList<Processo> processos;
+    public ArrayList<String> traceArray;
+    public ArrayList<Range> rangeArray;
+    public ArrayList<Const> constArray;
+    public Processo last;
+    public int index, sup, inf;
+
+    public void la(){
+        System.out.println("la.val: "+la.val);
+    }
+
+    public void t(){
+        System.out.println("t.val: "+t.val);
+    }
+
+    public void print(){
+        for(int i=0;i<processos.size();i++){
+            System.out.println(processos.get(i));
+            processos.get(i).printAcoes();
+        }
+        System.out.println();
+    }
+
+    public Processo novoProcesso(String nome, int i){
+        Processo p = new Processo(nome, i);
+        if(!processos.contains(p)) 
+            processos.add(p);
+        return p;
+    }
+
+    public Acao novaAcao(String nome){
+        if(last == null) return null;
+        Acao a = new Acao(nome, last);
+        if(!last.getAcoes().contains(a))
+            last.getAcoes().add(a);
+        return a;
+    }
+
+    public Acao achaAcao(String nome){
+        for(int i=0;i<processos.size();i++){
+            for(int j=0;j<processos.get(i).getAcoes().size();j++){
+                if(processos.get(i).getAcoes().get(j).getNome().equals(nome)) 
+                    return processos.get(i).getAcoes().get(j);
+            }
+        }
+        return null;
+    }
+
+    public void printTrace(){
+        for(int i=0;i<traceArray.size();i++){
+            System.out.println(traceArray.get(i));
+        }
+    }
+
+    public void novoTrace() throws Error{
+        Acao a = achaAcao(la.val);
+        if(a == null) 
+            throw new Error("Trace invalido!!");
+        traceArray.add(new String("obj_"+a.getProcesso().getNome().toLowerCase()+"."+a.getNome()+"();"));
+    }
+
+    public boolean isNum(char c){
+        return c >= '0' && c <= '9';
+    }
+
+CHARACTERS
+letra_minuscula = 'a' .. 'z'.
+
+letra_maiuscula = 'A' .. 'Z'.
+
+digito = '0' .. '9'.
+
+TOKENS
+numero_inteiro = digito { digito }.
+
+id_maiusculo = letra_maiuscula { digito | letra_minuscula | letra_maiuscula | "_" }.
+
+id_minusculo = letra_minuscula { digito | letra_minuscula | letra_maiuscula | "_" }.
+
+COMMENTS FROM "/*" TO "*/"
+
+IGNORE '\t' + '\r' + '\n'
+
+PRODUCTIONS
+
+FSP = 
+(.
+    processos = new ArrayList<Processo>();
+    traceArray = new ArrayList<String>();
+    rangeArray = new ArrayList<Range>();
+    constArray = new ArrayList<Const>();
+    index = inf = sup = -1;
+.)
+init{init}trace
+(.
+    print();
+    try{
+        int i;
+        Processo p, main = processos.get(0);
+
+        buff = new BufferedWriter(new FileWriter("Constantes"+main.getNome()+".java"));
+        buff.append(
+            "public class Constantes"+main.getNome()+"{\n\n"
+        );
+        for(i=0;i<constArray.size();i++){
+            buff.append(
+                "    public static final int "+constArray.get(i).getNome()+" = "+constArray.get(i).getValor()+";\n"
+            );
+        }
+        buff.append("}");
+        buff.close();
+
+        buff = new BufferedWriter(new FileWriter("Ranges"+main.getNome()+".java"));
+        buff.append(
+            "public class Ranges"+main.getNome()+"{\n\n"
+        );
+        for(i=0;i<rangeArray.size();i++){
+            buff.append(
+                "    public static final Range "+rangeArray.get(i).getNome()+" = new Range("+rangeArray.get(i).getInf()+", "+rangeArray.get(i).getSup()+");\n"
+            );
+        }
+        buff.append("}");
+        buff.close();
+
+        for(i=0;i<processos.size();i++){
+            p = processos.get(i);
+            /*cria um arquivo .java com o nome do processo.*/
+            buff = new BufferedWriter(new FileWriter(p.getNome()+".java"));
+            buff.append(
+                /*o nome da classe e o proprio do processo.*/
+                "public class "+p.getNome()+"{\n\n"+
+                /*contrutor da classe.*/
+                "    "+p.getNome()+"(){\n"+
+                "    }\n\n"
+            );
+            /*cada acao sera tranformada em um metodo da classe.*/
+            for(int j=0;j<p.getAcoes().size();j++){
+                buff.append(
+                    "    public void "+p.getAcoes().get(j).getNome()+"(){\n"+
+                    "        System.out.println(\""+p.getAcoes().get(j).getNome()+"\");\n"+
+                    (p.getAcoes().get(j).getNome().equals("STOP") ? "        System.exit(1);\n" : "")+
+                    "    }\n\n"
+                );
+            }
+            buff.append("}");
+            buff.close();
+        }
+        /*cria um arquivo .java com o nome Main+main.nome, que eh o nome do processo principal.*/
+        buff = new BufferedWriter(new FileWriter("Main"+main.getNome()+".java"));
+        /*nome da classe com o mesmo nome do arquivo.*/
+        buff.append(
+            "public class Main"+main.getNome()+" implements Runnable{\n\n"+
+            /*thread com o nome thread+main.nome.*/
+            "    Thread thread"+main.getNome()+";\n\n"
+        );
+        /*adiciona todos os objetos de cada classe(processo) como atributo da classe principal*/
+        for(i=0;i<processos.size();i++){
+            buff.append("    "+processos.get(i).getNome()+" obj_"+processos.get(i).getNome().toLowerCase()+";\n\n");
+        }
+        /*construtor da classe principal.*/
+        buff.append("    Main"+main.getNome()+"(){\n");
+        /*instancia cada atributo da classe principal.*/
+        for(i=0;i<processos.size();i++){
+            buff.append(
+                "        obj_"+processos.get(i).getNome().toLowerCase()+" = new "+processos.get(i).getNome()+"();\n"
+            );
+        }
+        buff.append(
+            /*instancia a thread*/
+            "        thread"+main.getNome()+" = new Thread(this);\n"+
+            /*inicia a execucao da thread*/
+            "        thread"+main.getNome()+".start();\n"+
+            "    }\n\n"+
+            /*execucao do programa com o metodo run*/
+            "    public void run(){\n"+
+            "        try{\n"+
+            "            while(true){\n"+
+            "                Thread.sleep(1000);\n"
+        );
+        for(i=0;i<traceArray.size();i++){
+            System.out.println(traceArray.get(i));
+            buff.append(
+                "                "+traceArray.get(i)+"\n"+
+                "                Thread.sleep(1000);\n"
+            );
+        }
+        buff.append(
+            "            }\n"+
+            "        }catch(InterruptedException e){}\n"+
+            "    }\n\n"+
+            /*metodo main que instancia a classe principal*/
+            "    public static void main(String args[]){\n"+
+            "        Main"+main.getNome()+" main = new Main"+main.getNome()+"();\n"+
+            "    }\n\n"+
+            "}"
+        );
+        buff.close();
+    }catch(Exception e){}
+.)
+.
+
+trace = 
+"TRACE"
+    acao_trace{"->"acao_trace}
+"FIMTRACE".
+
+init = processo_simples | declara_constante | declara_intervalo.
+
+expr  = term  { ("+" | "-") term }.
+
+term  = fator { ('*' | '/') fator }.
+
+fator = id_maiusculo | id_minusculo | numero_inteiro.
+
+expr_booleana = expr { ('>' | '<' | ">=" | "<=" | "==" | "&&" | "||" | "!") expr}.
+
+declara_constante = "const" 
+(. 
+    String nome = la.val;
+.)
+id_maiusculo "=" 
+(.
+    Const c = new Const(nome, Integer.parseInt(la.val));
+    if(!constArray.contains(c))
+        constArray.add(c);
+.)
+expr.
+
+declara_intervalo = "range" 
+(.
+    String nome = la.val;
+    la();
+.)
+id_maiusculo "=" 
+(.
+    int infLocal = Integer.parseInt(la.val);
+.)
+expr ".." 
+(.
+    int supLocal = Integer.parseInt(la.val);
+.)
+expr
+(.
+    System.out.println("nome "+nome);
+    Range r = new Range(nome, infLocal, supLocal);
+    if(!rangeArray.contains(r))
+        rangeArray.add(r);
+    r = rangeArray.get(rangeArray.size()-1);
+    System.out.println(r.getNome()+" "+r.getInf()+" "+r.getSup());
+.)
+.
+
+index = "[" 
+(.
+    la();
+    if( isNum(la.val.charAt(0)) ){
+        index = Integer.parseInt(la.val);
+    }else{
+        int i = constArray.indexOf(new Const(la.val, 0));
+        if(i != -1)
+            index = constArray.get(i).getValor();
+    }
+.)
+expr{":"
+(.
+    la();
+    if(isNum(la.val.charAt(0)))
+        inf = Integer.parseInt(la.val);
+    else
+        inf = -1;
+.)
+expr{".."
+(.
+    la();
+    if(isNum(la.val.charAt(0)) && inf != -1){
+        sup = Integer.parseInt(la.val);
+        rangeArray.add(new Range(inf, sup)); 
+    }
+.)
+expr}} "]".
+
+index_rotulos = index {index}.
+
+acao_simples = 
+(.
+    Acao a = novaAcao(la.val);
+.)
+id_minusculo[index_rotulos]
+(.
+    a.setIndex(index);
+    System.out.println(a.getIndex());
+.)
+.
+
+acao_trace = 
+(.
+    try{
+        novoTrace();
+    }catch(Error e){
+        System.out.println(e.toString());
+        System.exit(1);
+    }
+.)
+id_minusculo | index_rotulos.
+
+acao = acao_simples {"."acao_simples}.
+
+conjunto_acoes = "{" acao { "," acao } "}".
+
+extensao_alfabeto = "+"conjunto_acoes.
+
+visibilidade_rotulo = rotulo_escondido | rotulo_exposto.
+
+rotulo_escondido = "\\" conjunto_acoes.
+
+rotulo_exposto = "@" conjunto_acoes.
+
+renomeacoes = "/" conjunto_renomeacao.
+
+conjunto_renomeacao = "{"renomeacao{","renomeacao}"}".
+
+renomeacao = renomeacao_simples | "forall" index conjunto_renomeacao.
+
+renomeacao_simples = acao "/" acao.
+
+processo_simples =  
+(.
+    String nome = la.val;
+.)
+id_maiusculo["("lista_parametros")"]
+[index_rotulos]
+(.
+    System.out.println("index "+index+" inf "+inf+" sup "+sup);
+    int i = processos.indexOf(new Processo(nome, index));
+    if(i != -1 && processos.get(i).getIndex() != -1 && inf != -1 && sup != -1){
+        last = processos.get(i);
+        last.setRange(new Range(inf, sup));
+        System.out.println("entrou no i != -1");
+    }else{
+        last = novoProcesso(nome, index);
+        System.out.println("entrou no else");
+    }
+    System.out.println("last "+last);
+    last = processos.get(processos.indexOf(last));
+    System.out.println("last "+last);
+    System.out.println(last.getIndex());
+.)
+"=" ( processo_local | "(" corpo_processo_simples ")" ) ("." | ",").
+
+lista_parametros = parametro {","parametro}.
+
+parametro = id_maiusculo "=" numero_inteiro.
+
+corpo_processo_simples = corpo_processo{ ("->" | "|") corpo_processo}[extensao_alfabeto][visibilidade_rotulo][renomeacoes].
+
+processo_local = 
+(.
+    String nome = la.val;
+.)
+id_maiusculo[index]
+(.
+    last = novoProcesso(nome, index);
+    last = processos.get(processos.indexOf(last));
+    try{
+        if(index != -1)
+            last.setIndex(index);
+    }catch(Error e){
+        System.out.println(e);
+        System.exit(1);
+    }
+    System.out.println("processo_local "+last.getIndex());
+.)
+| 
+(.
+    novaAcao(la.val);
+.)
+"STOP" | 
+(.
+    novaAcao(la.val);
+.)
+"ERROR".
+
+corpo_processo = escolha | processo_local | condicao.
+
+escolha = ["when" expr_booleana] (conjunto_acoes | acao) "->" corpo_processo.
+
+condicao = "if" expr_booleana "then" corpo_processo "else" corpo_processo. 
+
+END FSP.

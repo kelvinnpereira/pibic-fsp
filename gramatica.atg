@@ -1,0 +1,805 @@
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.File;
+import java.util.ArrayList;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptEngine;
+
+COMPILER FSP $F
+
+
+    public BufferedWriter buff;
+    public ArrayList<Processo> processos;
+    public ArrayList<ProcessoLocal> locais;
+    public ArrayList<Acao> traceArray, acoes_atual = new ArrayList<Acao>();
+    public ArrayList<Range> rangeArray;
+    public ArrayList<Const> constArray;
+    public Processo processo_atual, primeiro = null;
+    public Acao acao_atual = null;
+    public int sup, inf, valor = 0, valor_expr = -1, tam_trace = 0;
+    public String index, expressao = "", bool = "";
+    public HiperGrafo grafo;
+    public boolean error, stop, seta, acao_inicio, conjunto;
+    public Vertice vertice_atual;
+    private ScriptEngineManager manager = new ScriptEngineManager();
+    private ScriptEngine eng = manager.getEngineByName("JavaScript");
+    private InterfaceGrafica ig = new InterfaceGrafica();
+
+    public void la(){
+        System.out.println("la.val: "+la.val);
+    }
+
+    public void t(){
+        System.out.println("t.val: "+t.val);
+    }
+
+    public void print(){
+        System.out.println("--------------------------------------------------------------------");
+        for(int i=0;i<processos.size();i++){
+            System.out.println(processos.get(i));
+            processos.get(i).printAcoes();
+        }
+        System.out.println("\nProcessoLocal");
+        for(int i=0;i<locais.size();i++){
+            System.out.println("locais "+locais.get(i));
+        }
+        System.out.println("\n"+grafo);
+        System.out.println("--------------------------------------------------------------------");
+    }
+
+    public Processo novoProcesso(String nome, String indice, int valor, Range range){
+        Processo p = new Processo(nome, indice, valor, range);
+        if(!processos.contains(p)) 
+            processos.add(p);
+        return p;
+    }
+
+    public Acao novaAcao(String nome, String indice, int valor_indice, int estado){
+        if(processo_atual == null) return null;
+        Acao a = new Acao(nome, processo_atual, indice, valor_indice, estado);
+        int i = processo_atual.getAcoes().lastIndexOf(a), num = 0;
+        if(i != -1)
+            a.setId(processo_atual.getAcoes().get(i).getId() + 1);
+        processo_atual.getAcoes().add(a);
+        return processo_atual.getAcoes().get(processo_atual.getAcoes().lastIndexOf(a));
+    }
+
+    public Acao achaAcao(String nome, int estado, int valor_indice){
+        for(int i=0;i<processos.size();i++){
+            ArrayList<Acao> acoes = processos.get(i).getAcoes();
+            for(int j=0;j<acoes.size();j++){
+                if(acoes.get(j).getNome().equals(nome) && acoes.get(j).getEstado() == estado && acoes.get(j).getValorIndice() == valor_indice) 
+                    return acoes.get(j);
+            }
+        }
+        return null;
+    }
+
+    public void printTrace(){
+        for(int i=0;i<traceArray.size();i++){
+            System.out.println("trace: "+traceArray.get(i));
+        }
+    }
+
+    public void novoTrace(String nome, int valor_indice) throws Error {
+        Acao a;
+        if(traceArray.size() == 0){
+            int i = primeiro.getAcoes().indexOf(new Acao(nome, primeiro));
+            if(i == -1) 
+                throw new Error("Trace invalido!Acao nao elegivel ou nao existe!!");
+            if(!primeiro.getAcoes().get(i).getInicio()) 
+                throw new Error("Trace invalido!Acao nao elegivel ou nao existe!!");
+            vertice_atual = grafo.busca(nome, primeiro.getAcoes().get(i).getId(), primeiro.getAcoes().get(i).getEstado(), valor_indice);
+            a = primeiro.getAcoes().get(i);
+        }else{
+            vertice_atual = vertice_atual == null ? null : vertice_atual.buscaVizinho(nome, valor_indice, 0);
+            a = achaAcao(nome, vertice_atual == null ? -1 : vertice_atual.getEstado(), valor_indice);
+        }
+        if(a == null) throw new Error("Trace invalido! Acao nao elegivel ou nao existe!!");
+        traceArray.add(a);
+    }
+
+    public boolean isNum(char c){
+        return c >= '0' && c <= '9';
+    }
+
+    public void finalizaGrafo(){
+        ArrayList<Vertice> vertices = grafo.getVertices();
+        int i = 0;
+        while(i<vertices.size()){
+            Vertice v = vertices.get(i);
+            int p_index = processos.indexOf(new Processo(v.getNome(), v.getValorIndice()));
+            if(!v.getNome().equals("ERROR") && !v.getNome().equals("STOP") && v.getNome().charAt(0) >= 'A' && v.getNome().charAt(0) <= 'Z'){
+                if(p_index != -1){
+                    ArrayList<Acao> acoes = processos.get(p_index).getAcoes();
+                    ArrayList<Aresta> arestas = v.getArestas();
+                    for(int a=0;a<arestas.size();a++){
+                        ArrayList<Vertice> vadj = arestas.get(a).getVertices();
+                        for(int b=0;b<vadj.size();b++){
+                            for(int j=0;j<acoes.size();j++){
+                                if(acoes.get(j).getInicio() )
+                                    grafo.insereAdj(vadj.get(b), grafo.buscaUltimo(acoes.get(j).getNome(), acoes.get(j).getId(), acoes.get(j).getEstado(), acoes.get(j).getValorIndice()), new Aresta());
+                            }
+                            vadj.get(b).remove(v);
+                        }
+                    }
+                }
+                grafo.getVertices().remove(v);
+                i=0;
+            }
+            i++;
+        }
+    }
+
+    public boolean andaTrace(Vertice v, int t){
+        ArrayList<Aresta> arestas = v.getArestas();
+        tam_trace = t+1;
+        if(arestas.size() == 1 && v.buscaNome("STOP") != null) {
+            stop = true;
+            return true;
+        }
+        if(arestas.size() == 1 && v.buscaNome("ERROR") != null) {
+            error = true;
+            return true;
+        }
+        if(traceArray.size() == t+1) return true;
+        for(int i=0;i<arestas.size();i++){
+            ArrayList<Vertice> vadj = arestas.get(i).getVertices();
+            for(int j=0;j<vadj.size();j++){
+                if(traceArray.size() > t+1 && traceArray.get(t+1).getNome().equals(vadj.get(j).getNome()) && traceArray.get(t+1).getValorIndice() == vadj.get(j).getValorIndice() && andaTrace(vadj.get(j), t+1)) return true;
+            }
+        }
+        return false;
+    }
+
+    public void verificaTrace() throws Error{
+        if(traceArray.size() == 0) return;
+        Acao acao = null;
+        ArrayList<Acao> acoes = primeiro.getAcoes();
+        for(int i=0;i<acoes.size()&&acao==null;i++){
+            if( acoes.get(i).getInicio() && acoes.get(i).getNome().equals(traceArray.get(0).getNome()) && acoes.get(i).getValorIndice() == traceArray.get(0).getValorIndice())
+                acao = acoes.get(i);      
+        }
+        if(acao == null){
+            throw new Error("Trace invalido!!");
+        }
+        ArrayList<Vertice> vertices = grafo.getVertices();
+        for(int i=0;i<vertices.size();i++){
+            if(vertices.get(i).getNome().equals(acao.getNome()) && vertices.get(i).getValorIndice() == acao.getValorIndice() && andaTrace(vertices.get(i), 0)) return;
+        }
+        if(true)throw new Error("Trace invalido!!");
+    }
+
+    public String tiraIndice(String expr, String indice, String valor){
+        if(expr.equals("") || indice.equals("") || valor.equals("")) return expr;
+        return expr.contains(indice) ? expr.replace(indice, valor) : expr;
+    }
+
+    public boolean exprBool(String expr){
+        if(!expr.equals("")){
+            try{
+                return (boolean)eng.eval(expr);
+            }catch(Exception e){
+                System.out.println("Erro de expressao em: "+expr);
+                System.exit(1);
+            }
+        }
+        return true;
+    }
+
+    public int calcExpr(String expr){
+        if(!expr.equals("")){
+            try{
+                return (int)eng.eval(expr);
+            }catch(Exception e){
+                System.out.println("Erro de expressao em: "+expr);
+                System.exit(1);
+            }
+        }
+        return -1;
+    }
+
+CHARACTERS
+lowercase_letter = 'a' .. 'z'.
+
+uppercase_letter = 'A' .. 'Z'.
+
+digit = '0' .. '9'.
+
+TOKENS
+integer = digit {digit}.
+
+uppercase_id = uppercase_letter { digit | lowercase_letter | uppercase_letter | "_" }.
+
+lowercase_id = lowercase_letter { digit | lowercase_letter | uppercase_letter | "_" }.
+
+COMMENTS FROM "/*" TO "*/"
+
+IGNORE '\t' + '\r' + '\n'
+
+PRODUCTIONS
+
+FSP = 
+
+(.
+    processos = new ArrayList<Processo>();
+    traceArray = new ArrayList<Acao>();
+    rangeArray = new ArrayList<Range>();
+    constArray = new ArrayList<Const>();
+    locais = new ArrayList<ProcessoLocal>();
+    grafo = new HiperGrafo();
+    inf = sup = -1;
+.)
+
+start{start}
+
+(.
+    finalizaGrafo();
+.)
+
+trace
+
+(.
+    print();
+    try{
+        verificaTrace();
+        int i;
+        Processo p, main = processos.get(0);
+        buff = new BufferedWriter(new FileWriter("Constantes"+main.getNome()+".java"));
+        buff.append(
+            "public class Constantes"+main.getNome()+"{\n\n"
+        );
+        for(i=0;i<constArray.size();i++){
+            buff.append(
+                "    public static final int "+constArray.get(i).getNome()+" = "+constArray.get(i).getValor()+";\n"
+            );
+        }
+        buff.append("}");
+        buff.close();
+
+        buff = new BufferedWriter(new FileWriter("Ranges"+main.getNome()+".java"));
+        buff.append(
+            "public class Ranges"+main.getNome()+"{\n\n"
+        );
+        for(i=0;i<rangeArray.size();i++){
+            buff.append(
+                "    public static final Range "+rangeArray.get(i).getNome()+" = new Range("+rangeArray.get(i).getInf()+", "+rangeArray.get(i).getSup()+");\n"
+            );
+        }
+        buff.append("}");
+        buff.close();
+
+        for(i=0;i<processos.size();i++){
+            p = processos.get(i);
+            /*cria um arquivo .java com o nome do processo.*/
+            String nomeP = p.getNome()+(p.getEstado() == -1 ? "": "_"+p.getEstado());
+            buff = new BufferedWriter(new FileWriter(nomeP+".java"));
+            buff.append(
+                /*o nome da classe e o proprio do processo.*/
+                "public class "+nomeP+"{\n\n"+
+                /*contrutor da classe.*/
+                "    "+nomeP+"(){\n"+
+                "    }\n\n"
+            );
+            /*cada acao sera tranformada em um metodo da classe.*/
+            ArrayList<Acao> acoes = p.getAcoes();
+            for(int j=0;j<acoes.size();j++){
+                String nomeA = acoes.get(j).getNome()+(acoes.get(j).getValorIndice() == -1 ? "": "_"+acoes.get(j).getValorIndice());
+                buff.append(
+                    "    public void "+nomeA+"(){\n"+
+                    "        System.out.println(\""+acoes.get(j).getNome()+
+                            (acoes.get(j).getValorIndice() != -1 ? "["+acoes.get(j).getValorIndice()+"]":"")+"\");\n"+
+                    "    }\n\n"
+                );
+            }
+            buff.append("}");
+            buff.close();
+        }
+        /*cria um arquivo .java com o nome Main+main.nome, que eh o nome do processo principal.*/
+        buff = new BufferedWriter(new FileWriter("Main"+main.getNome()+".java"));
+        /*nome da classe com o mesmo nome do arquivo.*/
+        buff.append(
+            "public class Main"+main.getNome()+" implements Runnable{\n\n"+
+            /*thread com o nome thread+main.nome.*/
+            "    Thread thread"+main.getNome()+";\n\n"
+        );
+        /*adiciona todos os objetos de cada classe(processo) como atributo da classe principal*/
+        for(i=0;i<processos.size();i++){
+            p = processos.get(i);
+            String nomeP = p.getNome()+(p.getEstado() == -1 ? "": "_"+p.getEstado());
+            buff.append("    "+nomeP+" obj_"+nomeP.toLowerCase()+";\n\n");
+        }
+        /*construtor da classe principal.*/
+        buff.append("    Main"+main.getNome()+"(){\n");
+        /*instancia cada atributo da classe principal.*/
+        for(i=0;i<processos.size();i++){
+            p = processos.get(i);
+            String nomeP = p.getNome()+(p.getEstado() == -1 ? "": "_"+p.getEstado());
+            buff.append(
+                "        obj_"+nomeP.toLowerCase()+" = new "+nomeP+"();\n"
+            );
+        }
+        buff.append(
+            /*instancia a thread*/
+            "        thread"+main.getNome()+" = new Thread(this);\n"+
+            /*inicia a execucao da thread*/
+            "        thread"+main.getNome()+".start();\n"+
+            "    }\n\n"+
+            /*execucao do programa com o metodo run*/
+            "    public void run(){\n"+
+            "        try{\n"+
+            "            while(true){\n"+
+            "                Thread.sleep(500);\n"
+        );
+        for(i=0;i<tam_trace&&i<traceArray.size();i++){
+            String nomeP = traceArray.get(i).getProcesso().getNome().toLowerCase();
+            nomeP += (traceArray.get(i).getProcesso().getEstado() == -1 ? "" : "_"+traceArray.get(i).getProcesso().getEstado());
+            String nomeA = traceArray.get(i).getNome()+(traceArray.get(i).getValorIndice() == -1 ? "" : "_"+traceArray.get(i).getValorIndice());
+            buff.append(
+                "                obj_"+nomeP+"."+nomeA+"();\n"+
+                "                Thread.sleep(1000);\n"
+            );
+        }
+        if(stop){
+            buff.append(
+                "                System.out.println(\"STOP\");\n"
+            );
+        }
+        if(error){
+            buff.append(
+                "                System.out.println(\"ERROR\");\n"+
+                "                throw new Error(\"Chamada do processo ERROR\");\n"
+            );
+        }else{
+            buff.append(
+                "                System.exit(1);\n"
+            );
+        }
+        buff.append(
+            "            }\n"+
+            "        }catch(Exception e){}\n"+
+            "    }\n\n"+
+            /*metodo main que instancia a classe principal*/
+            "    public static void main(String args[]){\n"+
+            "        Main"+main.getNome()+" main = new Main"+main.getNome()+"();\n"+
+            "    }\n\n"+
+            "}"
+        );
+        buff.close();
+    }catch(Exception e){
+        System.out.println("Execessao: "+e.toString());
+    }
+.)
+.
+
+trace = 
+"TRACE"
+    [trace_action{"->"trace_action}]
+"ENDTRACE".
+
+start = primitive_process | constant_declaration | range_declaration | composite_process.
+
+expr  = term  { (.expressao += la.val;.) ("+" | "-") term  }.
+
+term  = factor { (.expressao += la.val;.) ("*" | "/") factor }.
+
+factor = 
+
+(.
+    if(la.val.charAt(0) >= 'A' && la.val.charAt(0) <= 'Z' )
+        expressao += ""+constArray.get(constArray.indexOf(new Const(la.val, 0))).getValor();
+    else
+        expressao += la.val;
+.) 
+
+("("expr
+
+(.
+	if(la.val.charAt(0) == '(' || la.val.charAt(0) == ')' )
+        expressao += la.val;
+.)
+
+")" | uppercase_id | lowercase_id | integer).
+
+boolean_expr = 
+(.expressao = "";.) expr (.bool += expressao;.) 
+{ (.bool += la.val;.) ('>' | '<' | ">=" | "<=" | "==" | "&&" | "||" | "!" | "!=") 
+(.expressao = "";.) expr (.bool += expressao;.)}.
+
+constant_declaration = "const" 
+
+(. 
+    String nome = la.val;
+.)
+
+uppercase_id "=" 
+
+(.
+    Const c = new Const(nome, Integer.parseInt(la.val));
+    if(!constArray.contains(c))
+        constArray.add(c);
+.)
+
+expr.
+
+range_declaration = "range" 
+
+(.
+    String nome = la.val;
+.)
+
+uppercase_id "=" 
+
+(.
+    int infLocal = -1;
+    if( isNum(la.val.charAt(0)) ){
+        infLocal = Integer.parseInt(la.val);
+    }else{
+        int index = constArray.indexOf(new Const(la.val, 0));
+        if(index != -1)
+            infLocal = constArray.get(index).getValor();
+    }
+.)
+
+expr ".." 
+
+(.
+    int supLocal = -1;
+    if( isNum(la.val.charAt(0)) ){
+        supLocal = Integer.parseInt(la.val);
+    }else{
+        int index = constArray.indexOf(new Const(la.val, 0));
+        if(index != -1)
+            supLocal = constArray.get(index).getValor();
+    }
+.)
+expr
+
+(.
+        Range r = new Range(nome, infLocal, supLocal);
+        if(!rangeArray.contains(r))
+            rangeArray.add(r);
+        r = rangeArray.get(rangeArray.size()-1);
+.)
+.
+
+index = "[" 
+
+(.
+    index = la.val;
+    expressao = "";
+.) 
+
+expr{":"
+
+(.
+    String id = la.val;
+    expressao = "";
+
+.)
+
+expr
+
+(.
+    int i = rangeArray.indexOf(new Range(la.val));
+    if(i != -1){
+        inf = rangeArray.get(i).getInf();
+        sup = rangeArray.get(i).getSup();
+    }else{
+        inf = calcExpr(expressao);
+    }
+    expressao = "";
+.)
+
+{".."
+
+expr
+
+(.
+    sup = calcExpr(expressao);
+.)
+
+}} "]".
+
+index_label = index {index}.
+
+simple_action = 
+
+(.
+    String str = la.val;
+.)
+
+lowercase_id[index_label]
+
+(.
+    if(primeiro == null)
+        primeiro = processo_atual;
+    int inicio = processo_atual.getRange() == null ? -1 : processo_atual.getRange().getInf();
+    int pa = processos.indexOf( new Processo(processo_atual.getNome(), inicio)), pa_2 = pa, valor_expr = -1;
+    boolean valor_bool = true;
+    Range r = processo_atual.getRange();
+    int i = r != null ? r.getSup() - r.getInf() + 1 : 1;
+    Acao a = null;
+    Vertice v = null;
+    while(i-- != 0){
+        processo_atual = processos.get(pa);
+        if(exprBool(tiraIndice(bool, processos.get(pa).getIndice(), processos.get(pa).getEstado()+""))){
+            if(inf != - 1 && sup != -1){
+                if(acoes_atual.size() == 0){
+                    for(int cont=inf;cont<=sup;cont++){
+                        a = novaAcao(str, index, cont, processo_atual.getEstado());
+                        if(acao_inicio) a.setInicio(true);
+                        v = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice());
+                        acoes_atual.add(a);
+                    }
+                }else{
+                    ArrayList<Acao> acoes_atual_temp = new ArrayList<Acao>();
+                    for(int cont=0;cont<acoes_atual.size();cont++){
+                        a = novaAcao(str, acoes_atual.get(cont).getIndice(), acoes_atual.get(cont).getValorIndice(), processo_atual.getEstado());
+                        if(acao_inicio) a.setInicio(true);
+                        v = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice());
+                        valor_expr = calcExpr(tiraIndice(expressao, acoes_atual.get(cont).getIndice(), acoes_atual.get(cont).getValorIndice()+""));
+                        grafo.insereAdj(grafo.busca(acoes_atual.get(cont).getNome(), acoes_atual.get(cont).getId(), acoes_atual.get(cont).getEstado(), acoes_atual.get(cont).getValorIndice()), v, new Aresta());
+                        acoes_atual_temp.add(a);
+                    }
+                    acoes_atual = acoes_atual_temp;
+                }
+            }else{
+                valor_expr = calcExpr(tiraIndice(expressao, processos.get(pa).getIndice(), processos.get(pa).getEstado()+""));
+                a = novaAcao(str, processo_atual.getIndice(), valor_expr, processo_atual.getEstado());
+                v = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice());
+                if(acao_atual != null && r == null){
+                    grafo.insereAdj(grafo.busca(acao_atual.getNome(), acao_atual.getId(), acao_atual.getEstado(), acao_atual.getValorIndice()), v, new Aresta());
+                }
+                if(!conjunto && r == null)
+                    for(int cont=0;cont<acoes_atual.size();cont++){
+                        valor_expr = calcExpr(tiraIndice(expressao, acoes_atual.get(cont).getIndice(), acoes_atual.get(cont).getValorIndice()+""));
+                        grafo.insereAdj(grafo.busca(acoes_atual.get(cont).getNome(), acoes_atual.get(cont).getId(), acoes_atual.get(cont).getEstado(), acoes_atual.get(cont).getValorIndice()), v, new Aresta());
+                    }
+                if(!conjunto) acoes_atual = new ArrayList<Acao>();
+                acoes_atual.add(a);
+            }
+            if(acao_inicio) a.setInicio(true);
+            if(!conjunto) acao_atual = a;
+        }
+        pa++;
+    }
+    expressao = "";
+    bool = "";
+    processo_atual = processos.get(pa_2);
+    if(!conjunto) acao_inicio = false;
+.)
+.
+
+trace_action = 
+
+(.
+    String nome = la.val;
+.)
+
+lowercase_id[index_label]
+
+(.
+    try{
+        int temp = calcExpr(expressao);
+        novoTrace(nome, temp);
+    }catch(Error e){
+        System.out.println(e.toString());
+        System.exit(1);
+    }
+.)
+
+.
+
+action = simple_action {"."simple_action}.
+
+action_set = (.conjunto = true;.)"{" action { "," action } "}" (.conjunto = false;.).
+
+alphabet_extension = "+"action_set.
+
+label_visibility = hide_label | expose_label.
+
+hide_label = "\\" action_set.
+
+expose_label = "@" action_set.
+
+relabels = "/" relabel_set.
+
+relabel_set = "{"relabel{","relabel}"}".
+
+relabel = simple_relabel | "forall" index relabel_set.
+
+simple_relabel = action "/" action.
+
+primitive_process =  
+
+(.
+    String nome = la.val;
+.)
+
+uppercase_id["("parameter_list")"][index_label]
+
+(.
+    int indexPl = locais.indexOf(new ProcessoLocal(nome, -1, 0));
+    if(indexPl != -1 && inf != -1 && sup != -1){
+        Processo p = null;
+        for(int i=inf;i<=sup;i++){
+            p = novoProcesso(nome, index, i, new Range(inf, sup));
+            if(i == locais.get(indexPl).getValorIndice()) processo_atual = p;
+        }
+        valor_expr = inf = sup = -1;
+    }else{
+        processo_atual = novoProcesso(nome, "", -1, null);
+    }
+    acao_atual = null;
+    seta = acao_inicio = true;
+    expressao = "";
+.)
+
+"=" ( local_process | "(" primitive_process_body ")" ) ("." | ",").
+
+parameter_list = parameter {","parameter}.
+
+parameter = 
+
+(.
+    String nome = la.val;
+.)
+
+uppercase_id "=" 
+
+(.
+    Const c = new Const(nome, Integer.parseInt(la.val));
+    if(!constArray.contains(c))
+        constArray.add(c);
+.)
+
+integer.
+
+primitive_process_body = process_body { 
+
+(.
+    if(la.val.equals("|"))
+        acao_inicio = true;
+.)
+
+("->" | "|") process_body }[alphabet_extension][label_visibility][relabels].
+
+local_process = 
+
+(.
+    String nome = la.val;
+.)
+
+(uppercase_id[index]
+
+(.
+    int pa = processos.indexOf(processo_atual), pa_2 = pa, temp;
+    Range r = processo_atual.getRange();
+    int i = r != null ? r.getSup() - r.getInf() + 1 : 1;
+    ProcessoLocal pl = null;
+    Vertice v = null;
+    while(i-- != 0 && r != null && pa != -1 && pa < processos.size()){
+        processo_atual = processos.get(pa);
+        if(exprBool(tiraIndice(bool, processos.get(pa).getIndice(), processos.get(pa).getEstado()+""))){
+            valor_expr = calcExpr(tiraIndice(expressao, processos.get(pa).getIndice(), processos.get(pa).getEstado()+""));
+            if(valor_expr >= r.getInf() && valor_expr <= r.getSup()){
+                pl = new ProcessoLocal(nome, processo_atual.getEstado(), valor_expr);
+                int j = locais.lastIndexOf(pl);
+                if(j == -1)
+                    locais.add(pl);
+                else
+                v = grafo.insereVertice(nome, 0, processo_atual.getEstado(), valor_expr);
+                if(acao_atual != null){
+                    int k = processos.get(pa).getAcoes().indexOf(new Acao(acao_atual.getNome(), processos.get(pa)));
+                    if(k != -1){
+                        Acao a = processos.get(pa).getAcoes().get(k);
+                        a.setPl(pl);
+                        grafo.insereAdjSimetrica(grafo.busca(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice()), v);
+                    }
+                }
+            }else{
+                if(acao_atual != null){
+                    int k = processos.get(pa).getAcoes().indexOf(new Acao(acao_atual.getNome(), processos.get(pa)));
+                    if(k != -1){
+                        Acao a = processos.get(pa).getAcoes().get(k);
+                        grafo.insereAdj(grafo.busca(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice()), grafo.insereVertice("ERROR", 0, -1, -1), new Aresta());
+                    }
+                }
+            }
+        }
+        pa++;
+    }
+    processo_atual = processos.get(pa_2);
+    if(processo_atual.getIndice().equals("")){
+        valor_expr = calcExpr(tiraIndice(expressao, processos.get(pa).getIndice(), processos.get(pa).getEstado()+""));
+        pl = new ProcessoLocal(nome, processo_atual.getEstado(), valor_expr);
+        int j = locais.lastIndexOf(pl);
+        if(j == -1){
+            locais.add(pl);
+            v = grafo.insereVertice(nome, 0, processo_atual.getEstado(), valor_expr);
+        }else{
+            v = grafo.busca(nome, 0, processo_atual.getEstado(), valor_expr);
+            pl = locais.get(j);
+        }
+        for(i=0;i<acoes_atual.size();i++){
+            grafo.insereAdjSimetrica(grafo.buscaUltimo(acoes_atual.get(i).getNome(), acoes_atual.get(i).getId(), acoes_atual.get(i).getEstado(), acoes_atual.get(i).getValorIndice()), v);
+            acoes_atual.get(i).setPl(pl);
+        }
+    }
+    acao_atual = null;
+    acoes_atual = new ArrayList<Acao>();
+    expressao = "";
+.)
+
+| 
+
+(.
+    if(primeiro == null)
+        primeiro = processo_atual;
+    int inicio = processo_atual.getRange() == null ? -1 : processo_atual.getRange().getInf();
+    int pa = processos.indexOf( new Processo(processo_atual.getNome(), inicio)), pa_2 = pa, valor_expr = -1;
+    boolean valor_bool = true;
+    Range r = processo_atual.getRange();
+    int i = r != null ? r.getSup() - r.getInf() + 1 : 1;
+    Acao a = null;
+    while(i-- != 0){
+        processo_atual = processos.get(pa);
+        if(exprBool(tiraIndice(bool, processos.get(pa).getIndice(), processos.get(pa).getEstado()+""))){
+            a = novaAcao(la.val, "", -1, processo_atual.getEstado());
+            Vertice v = grafo.insereVertice(a.getNome(), 0, -1, -1);
+            if(acao_atual != null){
+                if(acoes_atual.size() > 1){
+                    for(int ia=0;ia<acoes_atual.size();ia++){
+                        grafo.insereAdj(grafo.busca(acoes_atual.get(ia).getNome(), acoes_atual.get(ia).getId(), acoes_atual.get(ia).getEstado(), acoes_atual.get(ia).getValorIndice()), v, new Aresta());
+                    }
+                }else{
+                    int k = processos.get(pa).getAcoes().indexOf(new Acao(acao_atual.getNome(), processos.get(pa)));
+                    if(k != -1){
+                        a = processos.get(pa).getAcoes().get(k);
+                        grafo.insereAdj(grafo.busca(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice()), v, new Aresta());
+                    }
+                }
+            }else{
+                a.setInicio(true);
+            }
+            if(r == null)acoes_atual.add(a);
+        }
+        pa++;
+    }
+    acao_atual = a;
+    processo_atual = processos.get(pa_2);
+.)
+
+("STOP" | "ERROR")) .
+
+process_body = choice | local_process | condition.
+
+choice = ["when"boolean_expr]
+
+(.
+    expressao = "";
+.)
+
+(action_set | action) (.seta = true;.) "->" process_body.
+
+condition = "if" boolean_expr "then" process_body "else" process_body. 
+
+composite_process = "||"uppercase_id ["("parameter_list")"] "=" composite_body[label_visibility][relabels]".".
+
+composite_body = process_instance | parallel_list | composite_conditional | compositi_replicator .
+
+compositi_replicator = "forall" index composite_body.
+
+composite_conditional = "if" boolean_expr "then" composite_body "else" composite_body.
+
+parallel_list = "(" composite_body {"||" composite_body} ")".
+
+process_instance = [action":"]uppercase_id["("actual_parameter_list")"].
+
+actual_parameter_list = expr {"," expr}.
+
+END FSP.

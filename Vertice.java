@@ -1,0 +1,99 @@
+import java.util.ArrayList;
+
+public class Vertice{
+
+    private ArrayList<Aresta> arestas;
+    private String nome;
+    private int id, estado, valor_indice;
+
+    Vertice(){
+    }
+
+    Vertice(String nome, int id, int estado, int valor_indice){
+        this.nome = nome;
+        this.id = id;
+        this.estado = estado;
+        this.valor_indice = valor_indice;
+        this.arestas = new ArrayList<Aresta>();
+    }
+
+    public ArrayList<Aresta> getArestas(){
+        return this.arestas;
+    }
+
+    public int getId(){
+        return this.id;
+    }
+
+    public String getNome(){
+        return this.nome;
+    }
+
+    public void setNome(String nome){
+        this.nome = nome;
+    }
+
+    public int getEstado(){
+        return this.estado;
+    }
+
+    public int getValorIndice(){
+        return this.valor_indice;
+    }
+
+    public void insereAresta(Aresta a){
+        if(a == null) return;
+        arestas.add(a);
+    }
+
+    public String toString(){
+        String str = nome+", id: "+id +", estado: "+estado+", valor_indice: "+valor_indice+" --> ";
+        for(int i=0;i<arestas.size();i++){
+            str += arestas.get(i).toString();
+        }
+        return str;
+    }
+
+    public Vertice buscaNome(String nome){
+        for(int i=0;i<arestas.size();i++){
+            ArrayList<Vertice> v = arestas.get(i).getVertices();
+            for(int j=0;j<v.size();j++){
+                if(v.get(j).getNome().equals(nome) ) return v.get(j);
+            }
+        }
+        return null;
+    }
+
+    public Vertice buscaVizinho(String nome, int valor_indice, int id){
+        for(int i=0;i<arestas.size();i++){
+            ArrayList<Vertice> v = arestas.get(i).getVertices();
+            for(int j=0;j<v.size();j++){
+                if(v.get(j).getNome().equals(nome) && v.get(j).getValorIndice() == valor_indice && v.get(j).getId() == id) return v.get(j);
+            }
+        }
+        return null;
+    }
+
+    public Aresta buscaVizinho(Vertice vertice) {
+        for(int i=0;i<arestas.size();i++){
+            ArrayList<Vertice> v = arestas.get(i).getVertices();
+            for(int j=0;j<v.size();j++){
+                if(v.get(j) == vertice) return arestas.get(i);
+            }
+        }
+        return null;
+    }
+
+    public void remove(Vertice v){
+        Aresta a = buscaVizinho(v);
+        if(a == null) return;
+        arestas.remove(a);
+        a.remove(v);
+    }
+
+    public boolean equals(Object o){
+        Vertice v = (Vertice)o;
+        return id == v.id && estado == v.estado && valor_indice == v.valor_indice && nome.equals(v.nome);
+    }
+
+}

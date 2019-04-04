@@ -1,0 +1,6 @@
+DRINKS = (red ->coffee->DRINKS 
+         |blue->tea   ->DRINKS
+         ).
+TRACE
+red -> coffee -> blue -> tea -> red -> coffee -> red -> coffee
+ENDTRACE

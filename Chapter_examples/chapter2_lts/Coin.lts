@@ -1,0 +1,6 @@
+COIN = 	(toss -> heads -> COIN
+        |toss -> tails -> COIN
+	    ).
+TRACE
+toss -> heads -> toss -> tails -> toss -> heads
+ENDTRACE

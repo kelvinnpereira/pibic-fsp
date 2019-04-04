@@ -1,0 +1,101 @@
+COMPILER FSP $F
+CHARACTERS
+lowercase_letter = 'a' .. 'z'.
+
+uppercase_letter = 'A' .. 'Z'.
+
+digit = '0' .. '9'.
+
+TOKENS
+integer = digit {digit}.
+
+uppercase_id = uppercase_letter { digit | lowercase_letter | uppercase_letter | "_" }.
+
+lowercase_id = lowercase_letter { digit | lowercase_letter | uppercase_letter | "_" }.
+
+COMMENTS FROM "/*" TO "*/"
+
+IGNORE '\t' + '\r' + '\n'
+
+PRODUCTIONS
+
+FSP = start{start}trace.
+
+trace = 
+"TRACE"
+    [trace_action{"->"trace_action}]
+"ENDTRACE".
+
+start = primitive_process | constant_declaration | range_declaration | composite_process.
+
+expr  = term  { ("+" | "-") term  }.
+
+term  = factor { ("*" | "/") factor }.
+
+factor = "("expr")" | uppercase_id | lowercase_id | integer.
+
+boolean_expr = expr {('>' | '<' | ">=" | "<=" | "==" | "&&" | "||" | "!" | "!=")expr}.
+
+constant_declaration = "const" uppercase_id "=" expr.
+
+range_declaration = "range" uppercase_id "=" expr ".." expr.
+
+index = "["expr{":"expr{".."expr}}"]".
+
+index_label = index {index}.
+
+simple_action = lowercase_id[index_label].
+
+trace_action = lowercase_id[index_label].
+
+action = simple_action {"."simple_action}.
+
+action_set = "{" action { "," action } "}".
+
+alphabet_extension = "+"action_set.
+
+label_visibility = hide_label | expose_label.
+
+hide_label = "\\" action_set.
+
+expose_label = "@" action_set.
+
+relabels = "/" relabel_set.
+
+relabel_set = "{"relabel{","relabel}"}".
+
+relabel = simple_relabel | "forall" index relabel_set.
+
+simple_relabel = action "/" action.
+
+primitive_process = uppercase_id["("parameter_list")"][index_label] "=" ( local_process | "(" primitive_process_body ")" ) ("." | ",").
+
+parameter_list = parameter {","parameter}.
+
+parameter = uppercase_id "=" integer.
+
+primitive_process_body = process_body { ("->" | "|") process_body }[alphabet_extension][label_visibility][relabels].
+
+local_process = uppercase_id[index] | ("STOP" | "ERROR").
+
+process_body = choice | local_process | condition.
+
+choice = ["when"boolean_expr](action_set | action) "->" process_body.
+
+condition = "if" boolean_expr "then" process_body "else" process_body. 
+
+composite_process = "||"uppercase_id ["("parameter_list")"] "=" composite_body[label_visibility][relabels]".".
+
+composite_body = process_instance | parallel_list | composite_conditional | compositi_replicator .
+
+compositi_replicator = "forall" index composite_body.
+
+composite_conditional = "if" boolean_expr "then" composite_body "else" composite_body.
+
+parallel_list = "(" composite_body {"||" composite_body} ")".
+
+process_instance = [action":"]uppercase_id["("actual_parameter_list")"].
+
+actual_parameter_list = expr {"," expr}.
+
+END FSP.

@@ -1,0 +1,6 @@
+CHAN = ( in->CHAN
+        |in->out->CHAN
+        ).
+TRACE
+        in->out
+FIMTRACE

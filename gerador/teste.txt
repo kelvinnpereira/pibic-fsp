@@ -1,0 +1,6 @@
+const N = 10
+P = P[10],
+P[i:10..50] = (a[i] -> P[i+1]).
+TRACE
+a
+FIMTRACE
