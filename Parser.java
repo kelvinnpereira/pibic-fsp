@@ -83,7 +83,7 @@ public class Parser {
         if(i != -1)
             a.setId(processo_atual.getAcoes().get(i).getId() + 1);
         processo_atual.getAcoes().add(a);
-        ig.addCheckBox(nome + (valor_indice == -1 ? "" : "["+valor_indice+"]"));
+        ig.addCheckBox(a);
         System.out.println(a);
         return processo_atual.getAcoes().get(processo_atual.getAcoes().lastIndexOf(a));
     }
@@ -104,6 +104,8 @@ public class Parser {
             System.out.println("trace: "+traceArray.get(i));
         }
     }
+
+    
 
     public void novoTrace(String nome, int valor_indice) throws Error {
         Acao a;
@@ -300,6 +302,7 @@ public class Parser {
 		finalizaGrafo();
 		
 		trace();
+		if(errors.count > 0) System.exit(1);
 		print();
 		ig.start_interface();
 		try{
@@ -608,6 +611,7 @@ public class Parser {
 	}
 
 	void factor() {
+		la();
 		if(la.val.charAt(0) >= 'A' && la.val.charAt(0) <= 'Z' )
 		   expressao += ""+constArray.get(constArray.indexOf(new Const(la.val, 0))).getValor();
 		else
@@ -619,6 +623,7 @@ public class Parser {
 			if(la.val.charAt(0) == '(' || la.val.charAt(0) == ')' )
 			      expressao += la.val;
 			
+			la();
 			Expect(12);
 		} else if (la.kind == 2) {
 			Get();
@@ -677,6 +682,7 @@ public class Parser {
 			expr();
 			bool += expressao;
 		}
+		System.out.println(bool);
 	}
 
 	void index() {
@@ -772,14 +778,15 @@ public class Parser {
 		           acoes_atual.add(a);
 		       }
 		       if(acao_inicio) a.setInicio(true);
+		       System.out.println("acao inicio: "+acao_inicio);
 		       if(!conjunto) acao_atual = a;
+		       if(!conjunto) acao_inicio = false;
 		   }
 		   pa++;
 		}
+		print();
 		expressao = "";
-		bool = "";
 		processo_atual = processos.get(pa_2);
-		if(!conjunto) acao_inicio = false;
 		
 	}
 
@@ -927,7 +934,7 @@ public class Parser {
 			}
 			acao_atual = null;
 			acoes_atual = new ArrayList<Acao>();
-			expressao = "";
+			expressao = bool = "";
 			
 		} else if (la.kind == 37 || la.kind == 38) {
 			if(primeiro == null)

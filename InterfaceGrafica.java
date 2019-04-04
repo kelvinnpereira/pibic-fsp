@@ -10,7 +10,7 @@ public class InterfaceGrafica{
 	JFrame frame;
 	JPanel panel;
     JButton compile;
-    ArrayList<JCheckBox> boxes;
+    ArrayList<AcaoCheckBox> boxes;
     JTextArea text_area;
     JScrollPane scroll_text_area, scroll_panel;
     ListenerBox listener_box;
@@ -25,7 +25,7 @@ public class InterfaceGrafica{
         text_area = new JTextArea("");
         scroll_text_area = new JScrollPane(text_area);
         compile = new JButton("compile");
-    	boxes = new ArrayList<JCheckBox>();
+    	boxes = new ArrayList<AcaoCheckBox>();
     }
 
     public void start_interface(){
@@ -42,10 +42,16 @@ public class InterfaceGrafica{
     	compile.addActionListener(listener_button);
     	
     	for(int i=0;i<boxes.size();i++){
-    		boxes.get(i).setEnabled(true);
-    		boxes.get(i).setSelected(true);
-    		boxes.get(i).addActionListener(listener_box);
-    		panel.add(boxes.get(i));
+            System.out.println("inicio: "+boxes.get(i).getAcao().getInicio());
+            if(boxes.get(i).getAcao().getInicio()){
+        		boxes.get(i).getBox().setEnabled(true);
+        		boxes.get(i).getBox().setSelected(true);
+            }else{
+                boxes.get(i).getBox().setEnabled(false);
+        		boxes.get(i).getBox().setSelected(false);
+            }
+    		boxes.get(i).getBox().addActionListener(listener_box);
+    		panel.add(boxes.get(i).getBox());
     	}
 
     	frame.add(scroll_text_area);
@@ -62,8 +68,8 @@ public class InterfaceGrafica{
     private class ListenerBox implements ActionListener{
     	public void actionPerformed(ActionEvent e){
     		for(int i=0;i<boxes.size();i++){
-    			if(e.getSource() == boxes.get(i) && !boxes.get(i).isSelected())
-	        		text_area.setText(text_area.getText()+""+boxes.get(i).getText()+"\n");
+    			if(e.getSource() == boxes.get(i).getBox() && !boxes.get(i).getBox().isSelected())
+	        		text_area.setText(text_area.getText()+""+boxes.get(i).getBox().getText()+"\n");
     		}
 	    }
     }
@@ -76,8 +82,12 @@ public class InterfaceGrafica{
 	    }
 	}
 	
-	public void addCheckBox(String acao){
-		boxes.add(new JCheckBox(acao));
+	public void addCheckBox(Acao acao){
+		boxes.add(new AcaoCheckBox(acao, new JCheckBox(acao.getNome()+(acao.getValorIndice() == -1 ? "" : "["+acao.getValorIndice()+"]"))));
 	}
+
+    public ArrayList<AcaoCheckBox> getBoxes(){
+        return this.boxes;
+    }
 
 }
