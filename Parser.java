@@ -122,7 +122,6 @@ public class Parser {
         }
         if(a == null) throw new Error("Trace invalido! Acao nao elegivel ou nao existe!!");
         traceArray.add(a);
-        print();
     }
 
     public boolean isNum(char c){
@@ -897,7 +896,7 @@ public class Parser {
 			                   grafo.insereAdjSimetrica(grafo.busca(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice()), v);
 			               }
 			           }
-			       }else{
+			       }else if(exprBool(tiraIndice(bool, processos.get(pa).getIndice(), valor_expr+""))){
 			           if(acao_atual != null){
 			               int k = processos.get(pa).getAcoes().indexOf(new Acao(acao_atual.getNome(), processos.get(pa)));
 			               if(k != -1){

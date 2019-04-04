@@ -17,22 +17,20 @@ public class InterfaceGrafica{
     ListenerButton listener_button;
 
     InterfaceGrafica(){
+        frame = new JFrame("Animator");
+        panel = new JPanel();
+        scroll_panel = new JScrollPane(panel);
+        listener_box = new ListenerBox();
+        listener_button = new ListenerButton();
+        text_area = new JTextArea("");
+        scroll_text_area = new JScrollPane(text_area);
+        compile = new JButton("compile");
     	boxes = new ArrayList<JCheckBox>();
     }
 
     public void start_interface(){
-		frame = new JFrame("Animator");
-		frame.setSize(320, 340);
-    	frame.setLayout(null);
-    	panel = new JPanel();
-    	scroll_panel = new JScrollPane(panel);
-    	listener_box = new ListenerBox();
-    	listener_button = new ListenerButton();
-    	text_area = new JTextArea("");
-    	scroll_text_area = new JScrollPane(text_area);
-    	compile = new JButton("compile");
-    	
-    	
+    	frame.setSize(320, 340);
+        frame.setLayout(null);
 
     	panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
     	scroll_panel.setBounds(160, 40, 155, 265);
@@ -63,7 +61,7 @@ public class InterfaceGrafica{
 
     private class ListenerBox implements ActionListener{
     	public void actionPerformed(ActionEvent e){
-    		for(int i=0;i<N;i++){
+    		for(int i=0;i<boxes.size();i++){
     			if(e.getSource() == boxes.get(i) && !boxes.get(i).isSelected())
 	        		text_area.setText(text_area.getText()+""+boxes.get(i).getText()+"\n");
     		}
@@ -74,6 +72,7 @@ public class InterfaceGrafica{
     	public void actionPerformed(ActionEvent e){
     		AbstractButton button = (AbstractButton)e.getSource();
     		text_area.setText(text_area.getText()+""+button.getText()+"\n");
+            frame.dispose();
 	    }
 	}
 	
