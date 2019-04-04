@@ -15,7 +15,7 @@ first:   "TRACE"
 follow:  EOF 
 
 trace_action
-first:   uppercase_id lowercase_id 
+first:   lowercase_id 
 follow:  "->" "ENDTRACE" 
 
 primitive_process

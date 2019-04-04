@@ -45,6 +45,7 @@ public class Parser {
     public Vertice vertice_atual;
     private ScriptEngineManager manager = new ScriptEngineManager();
     private ScriptEngine eng = manager.getEngineByName("JavaScript");
+    private InterfaceGrafica ig = new InterfaceGrafica();
 
     public void la(){
         System.out.println("la.val: "+la.val);
@@ -440,7 +441,7 @@ public class Parser {
 
 	void trace() {
 		Expect(4);
-		if (la.kind == 2 || la.kind == 3) {
+		if (la.kind == 3) {
 			trace_action();
 			while (la.kind == 5) {
 				Get();
@@ -453,22 +454,18 @@ public class Parser {
 	void trace_action() {
 		String nome = la.val;
 		
-		if (la.kind == 3) {
-			Get();
-			if (la.kind == 26) {
-				index_label();
-			}
-			try{
-			   int temp = calcExpr(expressao);
-			   novoTrace(nome, temp);
-			}catch(Error e){
-			   System.out.println(e.toString());
-			   System.exit(1);
-			}
-			
-		} else if (la.kind == 2) {
-			Get();
-		} else SynErr(45);
+		Expect(3);
+		if (la.kind == 26) {
+			index_label();
+		}
+		try{
+		   int temp = calcExpr(expressao);
+		   novoTrace(nome, temp);
+		}catch(Error e){
+		   System.out.println(e.toString());
+		   System.exit(1);
+		}
+		
 	}
 
 	void primitive_process() {
@@ -505,12 +502,12 @@ public class Parser {
 			Get();
 			primitive_process_body();
 			Expect(12);
-		} else SynErr(46);
+		} else SynErr(45);
 		if (la.kind == 29) {
 			Get();
 		} else if (la.kind == 31) {
 			Get();
-		} else SynErr(47);
+		} else SynErr(46);
 	}
 
 	void constant_declaration() {
@@ -610,7 +607,6 @@ public class Parser {
 		   expressao += ""+constArray.get(constArray.indexOf(new Const(la.val, 0))).getValor();
 		else
 		   expressao += la.val;
-		la();
 		
 		if (la.kind == 11) {
 			Get();
@@ -625,7 +621,7 @@ public class Parser {
 			Get();
 		} else if (la.kind == 1) {
 			Get();
-		} else SynErr(48);
+		} else SynErr(47);
 	}
 
 	void boolean_expr() {
@@ -723,63 +719,62 @@ public class Parser {
 		if (la.kind == 26) {
 			index_label();
 		}
-		System.out.println("expr: "+expressao);
-		  if(primeiro == null)
-		      primeiro = processo_atual;
-		  int inicio = processo_atual.getRange() == null ? -1 : processo_atual.getRange().getInf();
-		  int pa = processos.indexOf( new Processo(processo_atual.getNome(), inicio)), pa_2 = pa, valor_expr = -1;
-		  boolean valor_bool = true;
-		  Range r = processo_atual.getRange();
-		  int i = r != null ? r.getSup() - r.getInf() + 1 : 1;
-		  Acao a = null;
-		  Vertice v = null;
-		  while(i-- != 0){
-		      processo_atual = processos.get(pa);
-		      if(exprBool(tiraIndice(bool, processos.get(pa).getIndice(), processos.get(pa).getEstado()+""))){
-		          if(inf != - 1 && sup != -1){
-		              if(acoes_atual.size() == 0){
-		                  for(int cont=inf;cont<=sup;cont++){
-		                      a = novaAcao(str, index, cont, processo_atual.getEstado());
-		                      if(acao_inicio) a.setInicio(true);
-		                      v = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice());
-		                      acoes_atual.add(a);
-		                  }
-		              }else{
-		                  ArrayList<Acao> acoes_atual_temp = new ArrayList<Acao>();
-		                  for(int cont=0;cont<acoes_atual.size();cont++){
-		                      a = novaAcao(str, acoes_atual.get(cont).getIndice(), acoes_atual.get(cont).getValorIndice(), processo_atual.getEstado());
-		                      if(acao_inicio) a.setInicio(true);
-		                      v = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice());
-		                      valor_expr = calcExpr(tiraIndice(expressao, acoes_atual.get(cont).getIndice(), acoes_atual.get(cont).getValorIndice()+""));
-		                      grafo.insereAdj(grafo.busca(acoes_atual.get(cont).getNome(), acoes_atual.get(cont).getId(), acoes_atual.get(cont).getEstado(), acoes_atual.get(cont).getValorIndice()), v, new Aresta());
-		                      acoes_atual_temp.add(a);
-		                  }
-		                  acoes_atual = acoes_atual_temp;
-		              }
-		          }else{
-		              valor_expr = calcExpr(tiraIndice(expressao, processos.get(pa).getIndice(), processos.get(pa).getEstado()+""));
-		              a = novaAcao(str, processo_atual.getIndice(), valor_expr, processo_atual.getEstado());
-		              v = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice());
-		              if(acao_atual != null && r == null){
-		                  grafo.insereAdj(grafo.busca(acao_atual.getNome(), acao_atual.getId(), acao_atual.getEstado(), acao_atual.getValorIndice()), v, new Aresta());
-		              }
-		              if(!conjunto && r == null)
-		                  for(int cont=0;cont<acoes_atual.size();cont++){
-		                      valor_expr = calcExpr(tiraIndice(expressao, acoes_atual.get(cont).getIndice(), acoes_atual.get(cont).getValorIndice()+""));
-		                      grafo.insereAdj(grafo.busca(acoes_atual.get(cont).getNome(), acoes_atual.get(cont).getId(), acoes_atual.get(cont).getEstado(), acoes_atual.get(cont).getValorIndice()), v, new Aresta());
-		                  }
-		              if(!conjunto) acoes_atual = new ArrayList<Acao>();
-		              acoes_atual.add(a);
-		          }
-		          if(acao_inicio) a.setInicio(true);
-		          if(!conjunto) acao_atual = a;
-		      }
-		      pa++;
-		  }
-		  expressao = "";
-		  bool = "";
-		  processo_atual = processos.get(pa_2);
-		  if(!conjunto) acao_inicio = false;
+		if(primeiro == null)
+		   primeiro = processo_atual;
+		int inicio = processo_atual.getRange() == null ? -1 : processo_atual.getRange().getInf();
+		int pa = processos.indexOf( new Processo(processo_atual.getNome(), inicio)), pa_2 = pa, valor_expr = -1;
+		boolean valor_bool = true;
+		Range r = processo_atual.getRange();
+		int i = r != null ? r.getSup() - r.getInf() + 1 : 1;
+		Acao a = null;
+		Vertice v = null;
+		while(i-- != 0){
+		   processo_atual = processos.get(pa);
+		   if(exprBool(tiraIndice(bool, processos.get(pa).getIndice(), processos.get(pa).getEstado()+""))){
+		       if(inf != - 1 && sup != -1){
+		           if(acoes_atual.size() == 0){
+		               for(int cont=inf;cont<=sup;cont++){
+		                   a = novaAcao(str, index, cont, processo_atual.getEstado());
+		                   if(acao_inicio) a.setInicio(true);
+		                   v = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice());
+		                   acoes_atual.add(a);
+		               }
+		           }else{
+		               ArrayList<Acao> acoes_atual_temp = new ArrayList<Acao>();
+		               for(int cont=0;cont<acoes_atual.size();cont++){
+		                   a = novaAcao(str, acoes_atual.get(cont).getIndice(), acoes_atual.get(cont).getValorIndice(), processo_atual.getEstado());
+		                   if(acao_inicio) a.setInicio(true);
+		                   v = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice());
+		                   valor_expr = calcExpr(tiraIndice(expressao, acoes_atual.get(cont).getIndice(), acoes_atual.get(cont).getValorIndice()+""));
+		                   grafo.insereAdj(grafo.busca(acoes_atual.get(cont).getNome(), acoes_atual.get(cont).getId(), acoes_atual.get(cont).getEstado(), acoes_atual.get(cont).getValorIndice()), v, new Aresta());
+		                   acoes_atual_temp.add(a);
+		               }
+		               acoes_atual = acoes_atual_temp;
+		           }
+		       }else{
+		           valor_expr = calcExpr(tiraIndice(expressao, processos.get(pa).getIndice(), processos.get(pa).getEstado()+""));
+		           a = novaAcao(str, processo_atual.getIndice(), valor_expr, processo_atual.getEstado());
+		           v = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice());
+		           if(acao_atual != null && r == null){
+		               grafo.insereAdj(grafo.busca(acao_atual.getNome(), acao_atual.getId(), acao_atual.getEstado(), acao_atual.getValorIndice()), v, new Aresta());
+		           }
+		           if(!conjunto && r == null)
+		               for(int cont=0;cont<acoes_atual.size();cont++){
+		                   valor_expr = calcExpr(tiraIndice(expressao, acoes_atual.get(cont).getIndice(), acoes_atual.get(cont).getValorIndice()+""));
+		                   grafo.insereAdj(grafo.busca(acoes_atual.get(cont).getNome(), acoes_atual.get(cont).getId(), acoes_atual.get(cont).getEstado(), acoes_atual.get(cont).getValorIndice()), v, new Aresta());
+		               }
+		           if(!conjunto) acoes_atual = new ArrayList<Acao>();
+		           acoes_atual.add(a);
+		       }
+		       if(acao_inicio) a.setInicio(true);
+		       if(!conjunto) acao_atual = a;
+		   }
+		   pa++;
+		}
+		expressao = "";
+		bool = "";
+		processo_atual = processos.get(pa_2);
+		if(!conjunto) acao_inicio = false;
 		
 	}
 
@@ -813,7 +808,7 @@ public class Parser {
 			hide_label();
 		} else if (la.kind == 34) {
 			expose_label();
-		} else SynErr(49);
+		} else SynErr(48);
 	}
 
 	void hide_label() {
@@ -848,7 +843,7 @@ public class Parser {
 			Get();
 			index();
 			relabel_set();
-		} else SynErr(50);
+		} else SynErr(49);
 	}
 
 	void simple_relabel() {
@@ -971,7 +966,7 @@ public class Parser {
 			} else {
 				Get();
 			}
-		} else SynErr(51);
+		} else SynErr(50);
 	}
 
 	void primitive_process_body() {
@@ -1017,7 +1012,7 @@ public class Parser {
 			local_process();
 		} else if (la.kind == 40) {
 			condition();
-		} else SynErr(52);
+		} else SynErr(51);
 	}
 
 	void choice() {
@@ -1031,7 +1026,7 @@ public class Parser {
 			action_set();
 		} else if (la.kind == 3) {
 			action();
-		} else SynErr(53);
+		} else SynErr(52);
 		seta = true;
 		Expect(5);
 		process_body();
@@ -1055,7 +1050,7 @@ public class Parser {
 			composite_conditional();
 		} else if (la.kind == 35) {
 			compositi_replicator();
-		} else SynErr(54);
+		} else SynErr(53);
 	}
 
 	void process_instance() {
@@ -1188,16 +1183,15 @@ class Errors {
 			case 42: s = "\"else\" expected"; break;
 			case 43: s = "??? expected"; break;
 			case 44: s = "invalid start"; break;
-			case 45: s = "invalid trace_action"; break;
+			case 45: s = "invalid primitive_process"; break;
 			case 46: s = "invalid primitive_process"; break;
-			case 47: s = "invalid primitive_process"; break;
-			case 48: s = "invalid factor"; break;
-			case 49: s = "invalid label_visibility"; break;
-			case 50: s = "invalid relabel"; break;
-			case 51: s = "invalid local_process"; break;
-			case 52: s = "invalid process_body"; break;
-			case 53: s = "invalid choice"; break;
-			case 54: s = "invalid composite_body"; break;
+			case 47: s = "invalid factor"; break;
+			case 48: s = "invalid label_visibility"; break;
+			case 49: s = "invalid relabel"; break;
+			case 50: s = "invalid local_process"; break;
+			case 51: s = "invalid process_body"; break;
+			case 52: s = "invalid choice"; break;
+			case 53: s = "invalid composite_body"; break;
 			default: s = "error " + n; break;
 		}
 		printMsg(line, col, s);
