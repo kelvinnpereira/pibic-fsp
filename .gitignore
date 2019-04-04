@@ -1,7 +1,7 @@
 #Para arquivos Java compilados
 *.class
-#Para arquivos .old
-*.old
+#Para arquivos .java.old
+*.java.old
 #Para o arquivo trace.txt que e sempre gerado ao compilar o Coco.jar
 trace.txt
 
