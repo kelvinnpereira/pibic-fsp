@@ -1,7 +1,0 @@
-COIN =  ( heads -> tails -> COIN
-        | year -> heads -> xicara -> COIN
-        | stop -> ERROR
-        ).
-TRACE
-heads -> tails -> stop
-FIMTRACE

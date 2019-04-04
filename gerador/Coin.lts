@@ -1,7 +1,0 @@
-range N = 1..5
-COIN = 	(toss -> heads -> COIN
-        |toss -> tails -> COIN
-	    ).
-TRACE
-        toss -> heads -> tails
-FIMTRACE
