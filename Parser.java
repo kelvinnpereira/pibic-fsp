@@ -33,11 +33,10 @@ public class Parser {
 	public BufferedWriter buff;
     public ArrayList<Processo> processos;
     public ArrayList<ProcessoLocal> locais;
-    public ArrayList<Acao> traceArray, acoes_atual = new ArrayList<Acao>();
+    public ArrayList<Acao> traceArray;
     public ArrayList<Range> rangeArray;
     public ArrayList<Const> constArray;
     public Processo processo_atual, primeiro = null;
-    public Acao acao_atual = null;
     public int sup, inf, valor = 0, valor_expr = -1, tam_trace = 0;
     public String index, expressao = "", bool = "";
     public HiperGrafo grafo;
@@ -76,16 +75,16 @@ public class Parser {
         return p;
     }
 
-    public Acao novaAcao(String nome, String indice, int valor_indice, int estado){
-        if(processo_atual == null) return null;
-        Acao a = new Acao(nome, processo_atual, indice, valor_indice, estado);
-        int i = processo_atual.getAcoes().lastIndexOf(a), num = 0;
+    public Acao novaAcao(String nome, String indice, int valor_indice, int estado, Processo pa){
+        if(pa == null) return null;
+        Acao a = new Acao(nome, pa, indice, valor_indice, estado);
+        int i = pa.getAcoes().lastIndexOf(a), num = 0;
         if(i != -1)
-            a.setId(processo_atual.getAcoes().get(i).getId() + 1);
-        processo_atual.getAcoes().add(a);
+            a.setId(pa.getAcoes().get(i).getId() + 1);
+        pa.getAcoes().add(a);
         ig.addCheckBox(a);
         System.out.println(a);
-        return processo_atual.getAcoes().get(processo_atual.getAcoes().lastIndexOf(a));
+        return a;
     }
 
     public Acao achaAcao(String nome, int estado, int valor_indice){
@@ -224,6 +223,50 @@ public class Parser {
             }
         }
         return -1;
+    }
+
+    public void zeraAcoesAtuais(){
+    	for(int i=0;i<processos.size();i++){
+    		processos.setAcoesAtuais(new ArrayList<Acao>());
+    	}
+    }
+
+    public Acao acao_simples(String nome, Processo pa, int valor_indice){
+    	Acao a = null;
+    	if(exprBool(tiraIndice(bool, pa.getIndice(), pa.getEstado()+""))){
+	    	a = novaAcao(nome, pa.getIndice(), valor_indice, pa.getEstado(), pa);
+	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice());
+	        ArrayList<Acao> acoes_atuais = pa.getAcoesAtuais();
+	        if(acoes_atuais == 0){
+	        	a.setInicio(true);
+	        }else{
+		        for(int i=0;i<acoes_atuais.size();i++){
+		            grafo.insereAdj(grafo.busca(acoes_atuais.get(i).getNome(), acoes_atuais.get(i).getId(), acoes_atuais.get(i).getEstado(), acoes_atuais.get(i).getValorIndice()), vertice_atual, new Aresta());
+		        }
+		    }
+	    }
+	    return a;
+    }
+
+    public Acao acao_range(String nome, Processo pa){
+    	ArrayList<Acao> acoes_aux = new ArrayList<Acao>();
+    	for(int i=inf;i<=sup;i++){
+    		Acao a = acao_simples(nome, pa, i);
+    		acoes_aux.add(a);
+    	}
+    	pa.setAcoesAtuais(acoes_aux);
+    }
+
+    public Acao acao_index(String nome, int pa){
+    	Range r = processos.get(pa).getRange();
+    	Acao a;
+    	for(int i=r.getInf();i<=r.getSup();i++){
+    		if(inf != -1 && sup != -1)
+    			a = acao_simples(nome, processos.get(pa), calcExpr(tiraIndice(expressao, processos.get(pa).getIndice(), processos.get(pa).getEstado()+"")));
+    		else
+    			a = acao_range(nome, processos.get(pa));
+    		pa++;
+    	}
     }
 
 
@@ -724,69 +767,27 @@ public class Parser {
 	}
 
 	void simple_action() {
-		String str = la.val;
+		String nome = la.val;
 		
 		Expect(3);
 		if (la.kind == 26) {
 			index_label();
 		}
-		if(primeiro == null)
-		   primeiro = processo_atual;
-		int inicio = processo_atual.getRange() == null ? -1 : processo_atual.getRange().getInf();
-		int pa = processos.indexOf( new Processo(processo_atual.getNome(), inicio)), pa_2 = pa, valor_expr = -1;
-		boolean valor_bool = true;
-		Range r = processo_atual.getRange();
-		int i = r != null ? r.getSup() - r.getInf() + 1 : 1;
 		Acao a = null;
-		Vertice v = null;
-		while(i-- != 0){
-		   processo_atual = processos.get(pa);
-		   if(exprBool(tiraIndice(bool, processos.get(pa).getIndice(), processos.get(pa).getEstado()+""))){
-		       if(inf != - 1 && sup != -1){
-		           if(acoes_atual.size() == 0){
-		               for(int cont=inf;cont<=sup;cont++){
-		                   a = novaAcao(str, index, cont, processo_atual.getEstado());
-		                   if(acao_inicio) a.setInicio(true);
-		                   v = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice());
-		                   acoes_atual.add(a);
-		               }
-		           }else{
-		               ArrayList<Acao> acoes_atual_temp = new ArrayList<Acao>();
-		               for(int cont=0;cont<acoes_atual.size();cont++){
-		                   a = novaAcao(str, acoes_atual.get(cont).getIndice(), acoes_atual.get(cont).getValorIndice(), processo_atual.getEstado());
-		                   if(acao_inicio) a.setInicio(true);
-		                   v = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice());
-		                   valor_expr = calcExpr(tiraIndice(expressao, acoes_atual.get(cont).getIndice(), acoes_atual.get(cont).getValorIndice()+""));
-		                   grafo.insereAdj(grafo.busca(acoes_atual.get(cont).getNome(), acoes_atual.get(cont).getId(), acoes_atual.get(cont).getEstado(), acoes_atual.get(cont).getValorIndice()), v, new Aresta());
-		                   acoes_atual_temp.add(a);
-		               }
-		               acoes_atual = acoes_atual_temp;
-		           }
-		       }else{
-		           valor_expr = calcExpr(tiraIndice(expressao, processos.get(pa).getIndice(), processos.get(pa).getEstado()+""));
-		           a = novaAcao(str, processo_atual.getIndice(), valor_expr, processo_atual.getEstado());
-		           v = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice());
-		           if(acao_atual != null && r == null){
-		               grafo.insereAdj(grafo.busca(acao_atual.getNome(), acao_atual.getId(), acao_atual.getEstado(), acao_atual.getValorIndice()), v, new Aresta());
-		           }
-		           if(!conjunto && r == null)
-		               for(int cont=0;cont<acoes_atual.size();cont++){
-		                   valor_expr = calcExpr(tiraIndice(expressao, acoes_atual.get(cont).getIndice(), acoes_atual.get(cont).getValorIndice()+""));
-		                   grafo.insereAdj(grafo.busca(acoes_atual.get(cont).getNome(), acoes_atual.get(cont).getId(), acoes_atual.get(cont).getEstado(), acoes_atual.get(cont).getValorIndice()), v, new Aresta());
-		               }
-		           if(!conjunto) acoes_atual = new ArrayList<Acao>();
-		           acoes_atual.add(a);
-		       }
-		       if(acao_inicio) a.setInicio(true);
-		       System.out.println("acao inicio: "+acao_inicio);
-		       if(!conjunto) acao_atual = a;
-		       if(!conjunto) acao_inicio = false;
-		   }
-		   pa++;
-		}
-		print();
-		expressao = "";
-		processo_atual = processos.get(pa_2);
+		if(primeiro == null)
+		primeiro = processo_atual;
+		  if( processo_atual.getEstado() == -1 ){
+		  	if(inf != -1 && sup != -1){
+		  		acao_range(nome, processo_atual);
+		  	}else{
+		  		a = acao_simples(nome, processo_atual, calcExpr(tiraIndice(expressao, processo_atual.getIndice(), processo_atual.getEstado()+"")));
+		  		processo_atual.setAcoesAtuais(new ArrayList<Acao>());
+		       processo_atual.getAcoesAtuais().add(a);
+		  	}
+		  }else{
+		  	acao_index(nome, processos.indexOf(processo_atual));
+		  }
+		  expressao = "";
 		
 	}
 
@@ -983,8 +984,10 @@ public class Parser {
 	void primitive_process_body() {
 		process_body();
 		while (la.kind == 5 || la.kind == 36) {
-			if(la.val.equals("|"))
+			if(la.val.equals("|")){
 			   acao_inicio = true;
+			   zeraAcoesAtuais();
+			}
 			
 			if (la.kind == 5) {
 				Get();

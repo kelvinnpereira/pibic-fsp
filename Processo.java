@@ -3,7 +3,7 @@ import java.util.ArrayList;
 public class Processo{
 
     private String nome, indice;
-    private ArrayList<Acao> acoes;
+    private ArrayList<Acao> acoes, acoes_atuais;
     private int estado;
     private Range range;
 
@@ -25,10 +25,19 @@ public class Processo{
         this.estado = estado;
         this.range = range;
         acoes = new ArrayList<Acao>();
+        acoes_atuais = new ArrayList<Acao>();
     }
 
     public ArrayList<Acao> getAcoes(){
         return this.acoes;
+    }
+
+    public ArrayList<Acao> getAcoesAtuais(){
+        return this.acoes_atuais;
+    }
+
+    public void setAcoesAtuais(ArrayList<Acao> acoes_atuais){
+        this.acoes_atuais = acoes_atuais;
     }
 
     public String getNome(){
@@ -45,8 +54,7 @@ public class Processo{
 
     public boolean equals(Object o){
         Processo p = (Processo)o;
-        boolean indexBool = (estado == -1 && estado == p.estado) || ( estado != -1 && estado == p.estado);
-        return nome.equals(p.nome) && indexBool;
+        return nome.equals(p.nome) && estado == p.estado;
     }
 
     public String toString(){
