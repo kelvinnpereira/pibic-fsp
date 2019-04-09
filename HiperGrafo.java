@@ -82,7 +82,7 @@ public class HiperGrafo{
     public String toString(){
         String str = "";
         for(int i=0;i<vertices.size();i++)
-            str += vertices.get(i).toString() + "\n";
+            str += vertices.get(i).toString() + "\n\n\n";
         return str;
     }
 

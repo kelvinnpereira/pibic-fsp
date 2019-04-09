@@ -37,14 +37,19 @@ public class Parser {
     public ArrayList<Range> rangeArray;
     public ArrayList<Const> constArray;
     public Processo processo_atual, primeiro = null;
+    public Acao acao_atual = null;
     public int sup, inf, valor = 0, valor_expr = -1, tam_trace = 0;
     public String index, expressao = "", bool = "";
     public HiperGrafo grafo;
-    public boolean error, stop, seta, acao_inicio, conjunto;
+    public boolean error, stop, acao_inicio, conjunto;
     public Vertice vertice_atual;
     private ScriptEngineManager manager = new ScriptEngineManager();
     private ScriptEngine eng = manager.getEngineByName("JavaScript");
     private InterfaceGrafica ig = new InterfaceGrafica();
+
+    public void p(String str){
+    	System.out.println(str);
+    }
 
     public void la(){
         System.out.println("la.val: "+la.val);
@@ -83,7 +88,6 @@ public class Parser {
             a.setId(pa.getAcoes().get(i).getId() + 1);
         pa.getAcoes().add(a);
         ig.addCheckBox(a);
-        System.out.println(a);
         return a;
     }
 
@@ -118,7 +122,7 @@ public class Parser {
             a = primeiro.getAcoes().get(i);
         }else{
             vertice_atual = vertice_atual == null ? null : vertice_atual.buscaVizinho(nome, valor_indice, 0);
-            System.out.println(nome +", "+(vertice_atual == null ? -1 : vertice_atual.getEstado())+", "+valor_indice);
+            //System.out.println(nome +", "+(vertice_atual == null ? -1 : vertice_atual.getEstado())+", "+valor_indice);
             a = achaAcao(nome, vertice_atual == null ? -1 : vertice_atual.getEstado(), valor_indice);
         }
         if(a == null) throw new Error("Trace invalido! Acao nao elegivel ou nao existe!!");
@@ -227,17 +231,17 @@ public class Parser {
 
     public void zeraAcoesAtuais(){
     	for(int i=0;i<processos.size();i++){
-    		processos.setAcoesAtuais(new ArrayList<Acao>());
+    		processos.get(i).setAcoesAtuais(new ArrayList<Acao>());
     	}
     }
 
-    public Acao acao_simples(String nome, Processo pa, int valor_indice){
+    public Acao acao_simples(String nome, Processo pa, String indice, int valor_indice){
     	Acao a = null;
     	if(exprBool(tiraIndice(bool, pa.getIndice(), pa.getEstado()+""))){
-	    	a = novaAcao(nome, pa.getIndice(), valor_indice, pa.getEstado(), pa);
+	    	a = novaAcao(nome, indice, valor_indice, pa.getEstado(), pa);
 	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice());
 	        ArrayList<Acao> acoes_atuais = pa.getAcoesAtuais();
-	        if(acoes_atuais == 0){
+	        if(acao_inicio){
 	        	a.setInicio(true);
 	        }else{
 		        for(int i=0;i<acoes_atuais.size();i++){
@@ -248,24 +252,73 @@ public class Parser {
 	    return a;
     }
 
-    public Acao acao_range(String nome, Processo pa){
+    public void acao_range(String nome, Processo pa){
     	ArrayList<Acao> acoes_aux = new ArrayList<Acao>();
     	for(int i=inf;i<=sup;i++){
-    		Acao a = acao_simples(nome, pa, i);
+    		Acao a = acao_simples(nome, pa, index, i);
     		acoes_aux.add(a);
     	}
     	pa.setAcoesAtuais(acoes_aux);
     }
 
-    public Acao acao_index(String nome, int pa){
+    public void acao_range_index(String nome, Processo pa){
+    	ArrayList<Acao> acoes_aux = new ArrayList<Acao>(), acoes_atuais = pa.getAcoesAtuais();
+    	Acao a;
+    	for(int i=inf, j=0;i<=sup;i++,j++){
+    		a = acoes_atuais.get(j);
+    		pa.setAcoesAtuais(new ArrayList<Acao>());
+    		pa.getAcoesAtuais().add(a);
+    		a = acao_simples(nome, pa, index, calcExpr(tiraIndice(expressao, index, i+"")));
+    		acoes_aux.add(a);
+    	}
+    	pa.setAcoesAtuais(acoes_aux);
+    }
+
+    public void acao_index(String nome, int pa){
     	Range r = processos.get(pa).getRange();
     	Acao a;
     	for(int i=r.getInf();i<=r.getSup();i++){
-    		if(inf != -1 && sup != -1)
-    			a = acao_simples(nome, processos.get(pa), calcExpr(tiraIndice(expressao, processos.get(pa).getIndice(), processos.get(pa).getEstado()+"")));
-    		else
-    			a = acao_range(nome, processos.get(pa));
+    		processo_atual = processos.get(pa);
+    		if(inf != -1 && sup != -1){
+    			if(processo_atual.getAcoesAtuais().size() > 1)
+    				acao_range_index(nome, processo_atual);
+    			else
+    				acao_range(nome, processos.get(pa));
+    		}else{
+    			a = acao_simples(nome, processos.get(pa), processos.get(pa).getIndice(), calcExpr(tiraIndice(expressao, processos.get(pa).getIndice(), processos.get(pa).getEstado()+"")));
+    			processos.get(pa).setAcoesAtuais(new ArrayList<Acao>());
+    			processos.get(pa).getAcoesAtuais().add(a);
+    		}
     		pa++;
+    	}
+    }
+
+    public void processo_local(String nome, Processo pa, int valor_indice){
+    	if(exprBool(tiraIndice(bool, pa.getIndice(), pa.getEstado()+""))){
+            ProcessoLocal pl = new ProcessoLocal(nome, pa.getEstado(), valor_indice);
+            int j = locais.lastIndexOf(pl);
+            if(j == -1)
+                locais.add(pl);
+            vertice_atual = grafo.insereVertice(nome, 0, pa.getEstado(), valor_indice);
+            ArrayList<Acao> acoes_atuais = pa.getAcoesAtuais();
+        	for(int i=0;i<acoes_atuais.size();i++){
+                grafo.insereAdjSimetrica(grafo.busca(acoes_atuais.get(i).getNome(), acoes_atuais.get(i).getId(), acoes_atuais.get(i).getEstado(), acoes_atuais.get(i).getValorIndice()), vertice_atual);
+            }
+            pa.setAcoesAtuais(new ArrayList<Acao>());
+    	}
+    }
+
+    public void processo_local_index(String nome, int pa){
+    	Range r = processos.get(pa).getRange();
+    	int valor_expr = -1;
+    	for(int i=r.getInf();i<=r.getSup();i++){
+    		valor_expr = calcExpr(tiraIndice(expressao, processos.get(pa).getIndice(), processos.get(pa).getEstado()+""));
+            if(valor_expr >= r.getInf() && valor_expr <= r.getSup()){
+            	processo_local(nome, processos.get(pa), valor_expr);
+            }else{
+            	processo_local("ERROR", processos.get(pa), -1);
+            }
+            pa++;
     	}
     }
 
@@ -343,10 +396,10 @@ public class Parser {
 			start();
 		}
 		finalizaGrafo();
+		print();
 		
 		trace();
 		if(errors.count > 0) System.exit(1);
-		print();
 		ig.start_interface();
 		try{
 		   verificaTrace();
@@ -536,15 +589,16 @@ public class Parser {
 		   Processo p = null;
 		   for(int i=inf;i<=sup;i++){
 		       p = novoProcesso(nome, index, i, new Range(inf, sup));
-		       if(i == locais.get(indexPl).getValorIndice()) processo_atual = p;
+		       if(i == inf) processo_atual = p;
+		       if(i == locais.get(indexPl).getValorIndice() && primeiro == null) primeiro = p;
 		   }
 		   valor_expr = inf = sup = -1;
 		}else{
 		   processo_atual = novoProcesso(nome, "", -1, null);
 		}
-		acao_atual = null;
-		seta = acao_inicio = true;
+		acao_inicio = true;
 		expressao = "";
+		//print();
 		
 		Expect(23);
 		if (la.kind == 2 || la.kind == 37 || la.kind == 38) {
@@ -654,7 +708,6 @@ public class Parser {
 	}
 
 	void factor() {
-		la();
 		if(la.val.charAt(0) >= 'A' && la.val.charAt(0) <= 'Z' )
 		   expressao += ""+constArray.get(constArray.indexOf(new Const(la.val, 0))).getValor();
 		else
@@ -679,10 +732,13 @@ public class Parser {
 
 	void boolean_expr() {
 		expressao = "";
+		
 		expr();
 		bool += expressao;
+		
 		while (StartOf(2)) {
 			bool += la.val;
+			
 			switch (la.kind) {
 			case 13: {
 				Get();
@@ -722,10 +778,13 @@ public class Parser {
 			}
 			}
 			expressao = "";
+			
 			expr();
 			bool += expressao;
+			
 		}
-		System.out.println(bool);
+		System.out.println("bool: "+bool);
+		
 	}
 
 	void index() {
@@ -776,18 +835,29 @@ public class Parser {
 		Acao a = null;
 		if(primeiro == null)
 		primeiro = processo_atual;
+		Processo p = processo_atual;
 		  if( processo_atual.getEstado() == -1 ){
 		  	if(inf != -1 && sup != -1){
-		  		acao_range(nome, processo_atual);
+		  		if(processo_atual.getAcoesAtuais().size() > 1)
+		  			acao_range_index(nome, processo_atual);
+		  		else
+		  			acao_range(nome, processo_atual);
 		  	}else{
-		  		a = acao_simples(nome, processo_atual, calcExpr(tiraIndice(expressao, processo_atual.getIndice(), processo_atual.getEstado()+"")));
-		  		processo_atual.setAcoesAtuais(new ArrayList<Acao>());
-		       processo_atual.getAcoesAtuais().add(a);
+		  		a = acao_simples(nome, processo_atual, processo_atual.getIndice(), calcExpr(tiraIndice(expressao, processo_atual.getIndice(), processo_atual.getEstado()+"")));
+		   	la();
+		   	if(!la.val.equals(",")){
+		   		processo_atual.setAcoesAtuais(new ArrayList<Acao>());
+		        processo_atual.getAcoesAtuais().add(a);
+		    }
 		  	}
 		  }else{
 		  	acao_index(nome, processos.indexOf(processo_atual));
 		  }
 		  expressao = "";
+		  if(la.val.equals("->")) acao_inicio = false;
+		  acao_atual = a;
+		  processo_atual = p;
+		  print();
 		
 	}
 
@@ -800,15 +870,21 @@ public class Parser {
 	}
 
 	void action_set() {
-		conjunto = true;
+		ArrayList<Acao> acoes_atuais = new ArrayList<Acao>();
+		
 		Expect(30);
 		action();
+		acoes_atuais.add(acao_atual);
+		
 		while (la.kind == 31) {
 			Get();
 			action();
+			acoes_atuais.add(acao_atual);
+			
 		}
 		Expect(32);
-		conjunto = false;
+		processo_atual.setAcoesAtuais(acoes_atuais);
+		
 	}
 
 	void alphabet_extension() {
@@ -881,97 +957,27 @@ public class Parser {
 			if (la.kind == 26) {
 				index();
 			}
-			int pa = processos.indexOf(processo_atual), pa_2 = pa, temp;
-			Range r = processo_atual.getRange();
-			int i = r != null ? r.getSup() - r.getInf() + 1 : 1;
-			ProcessoLocal pl = null;
-			Vertice v = null;
-			while(i-- != 0 && r != null && pa != -1 && pa < processos.size()){
-			   processo_atual = processos.get(pa);
-			   if(exprBool(tiraIndice(bool, processos.get(pa).getIndice(), processos.get(pa).getEstado()+""))){
-			       valor_expr = calcExpr(tiraIndice(expressao, processos.get(pa).getIndice(), processos.get(pa).getEstado()+""));
-			       if(valor_expr >= r.getInf() && valor_expr <= r.getSup()){
-			           pl = new ProcessoLocal(nome, processo_atual.getEstado(), valor_expr);
-			           int j = locais.lastIndexOf(pl);
-			           if(j == -1)
-			               locais.add(pl);
-			           v = grafo.insereVertice(nome, 0, processo_atual.getEstado(), valor_expr);
-			           if(acao_atual != null){
-			               int k = processos.get(pa).getAcoes().indexOf(new Acao(acao_atual.getNome(), processos.get(pa)));
-			               if(k != -1){
-			                   Acao a = processos.get(pa).getAcoes().get(k);
-			                   a.setPl(pl);
-			                   grafo.insereAdjSimetrica(grafo.busca(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice()), v);
-			               }
-			           }
-			       }else if(exprBool(tiraIndice(bool, processos.get(pa).getIndice(), valor_expr+""))){
-			           if(acao_atual != null){
-			               int k = processos.get(pa).getAcoes().indexOf(new Acao(acao_atual.getNome(), processos.get(pa)));
-			               if(k != -1){
-			                   Acao a = processos.get(pa).getAcoes().get(k);
-			                   grafo.insereAdj(grafo.busca(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice()), grafo.insereVertice("ERROR", 0, -1, -1), new Aresta());
-			               }
-			           }
-			       }
-			   }
-			   pa++;
+			if(processo_atual.getEstado() == -1){
+			processo_local(nome, processo_atual, calcExpr(tiraIndice(expressao, processo_atual.getIndice(), processo_atual.getEstado()+"")) );
+			}else{
+			processo_local_index(nome, processos.indexOf(processo_atual));
 			}
-			processo_atual = processos.get(pa_2);
-			if(processo_atual.getIndice().equals("")){
-			   valor_expr = calcExpr(tiraIndice(expressao, processos.get(pa).getIndice(), processos.get(pa).getEstado()+""));
-			   pl = new ProcessoLocal(nome, processo_atual.getEstado(), valor_expr);
-			   int j = locais.lastIndexOf(pl);
-			   if(j == -1){
-			       locais.add(pl);
-			       v = grafo.insereVertice(nome, 0, processo_atual.getEstado(), valor_expr);
-			   }else{
-			       v = grafo.busca(nome, 0, processo_atual.getEstado(), valor_expr);
-			       pl = locais.get(j);
-			   }
-			   for(i=0;i<acoes_atual.size();i++){
-			       grafo.insereAdjSimetrica(grafo.buscaUltimo(acoes_atual.get(i).getNome(), acoes_atual.get(i).getId(), acoes_atual.get(i).getEstado(), acoes_atual.get(i).getValorIndice()), v);
-			       acoes_atual.get(i).setPl(pl);
-			   }
-			}
-			acao_atual = null;
-			acoes_atual = new ArrayList<Acao>();
 			expressao = bool = "";
 			
 		} else if (la.kind == 37 || la.kind == 38) {
-			if(primeiro == null)
-			   primeiro = processo_atual;
-			int inicio = processo_atual.getRange() == null ? -1 : processo_atual.getRange().getInf();
-			int pa = processos.indexOf( new Processo(processo_atual.getNome(), inicio)), pa_2 = pa, valor_expr = -1;
-			boolean valor_bool = true;
-			Range r = processo_atual.getRange();
-			int i = r != null ? r.getSup() - r.getInf() + 1 : 1;
 			Acao a = null;
-			while(i-- != 0){
-			   processo_atual = processos.get(pa);
-			   if(exprBool(tiraIndice(bool, processos.get(pa).getIndice(), processos.get(pa).getEstado()+""))){
-			       a = novaAcao(la.val, "", -1, processo_atual.getEstado());
-			       Vertice v = grafo.insereVertice(a.getNome(), 0, -1, -1);
-			       if(acao_atual != null){
-			           if(acoes_atual.size() > 1){
-			               for(int ia=0;ia<acoes_atual.size();ia++){
-			                   grafo.insereAdj(grafo.busca(acoes_atual.get(ia).getNome(), acoes_atual.get(ia).getId(), acoes_atual.get(ia).getEstado(), acoes_atual.get(ia).getValorIndice()), v, new Aresta());
-			               }
-			           }else{
-			               int k = processos.get(pa).getAcoes().indexOf(new Acao(acao_atual.getNome(), processos.get(pa)));
-			               if(k != -1){
-			                   a = processos.get(pa).getAcoes().get(k);
-			                   grafo.insereAdj(grafo.busca(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice()), v, new Aresta());
-			               }
-			           }
-			       }else{
-			           a.setInicio(true);
-			       }
-			       if(r == null)acoes_atual.add(a);
-			   }
-			   pa++;
+			Processo p = processo_atual;
+			if(primeiro == null)
+			primeiro = processo_atual;
+			if( processo_atual.getEstado() == -1 ){
+			a = acao_simples(la.val, processo_atual, processo_atual.getIndice(), calcExpr(tiraIndice(expressao, processo_atual.getIndice(), processo_atual.getEstado()+"")));
+			processo_atual.setAcoesAtuais(new ArrayList<Acao>());
+			   processo_atual.getAcoesAtuais().add(a);
+			}else{
+			acao_index(la.val, processos.indexOf(processo_atual));
 			}
-			acao_atual = a;
-			processo_atual = processos.get(pa_2);
+			expressao = bool = "";
+			processo_atual = p;
 			
 			if (la.kind == 37) {
 				Get();
@@ -1042,7 +1048,6 @@ public class Parser {
 		} else if (la.kind == 3) {
 			action();
 		} else SynErr(52);
-		seta = true;
 		Expect(5);
 		process_body();
 	}

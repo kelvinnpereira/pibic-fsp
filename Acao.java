@@ -1,6 +1,9 @@
+import java.util.ArrayList;
+
 public class Acao{
 
     private String nome, expressao, indice;
+    private ArrayList<Acao> acoes_atuais;
     private Processo processo;
     private ProcessoLocal pl;
     private boolean inicio;
@@ -18,6 +21,15 @@ public class Acao{
         this.indice = indice;
         this.valor_indice = valor_indice;
         this.estado = estado;
+        acoes_atuais = new ArrayList<Acao>();
+    }
+
+    public ArrayList<Acao> getAcoesAtuais(){
+        return this.acoes_atuais;
+    }
+
+    public void setAcoesAtuais(ArrayList<Acao> acoes_atuais){
+        this.acoes_atuais = acoes_atuais;
     }
 
     public void setPl(ProcessoLocal pl){
