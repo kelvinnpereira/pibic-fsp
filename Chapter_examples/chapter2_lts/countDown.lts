@@ -4,6 +4,3 @@ COUNTDOWN[i:0..N] =
    		|when(i==0) beep->STOP
 		|stop->STOP
  		).
-TRACE
-start -> tick -> tick -> tick -> beep
-ENDTRACE

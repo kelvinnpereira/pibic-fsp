@@ -11,6 +11,3 @@ RUNNABLE     = (suspend        ->NON_RUNNABLE
 NON_RUNNABLE = (resume         ->RUNNABLE    
                |stop           ->TERMINATED),
 TERMINATED   = STOP.
-TRACE
-start -> suspend -> resume -> dispatch -> yield -> stop
-ENDTRACE

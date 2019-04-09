@@ -1,4 +1,1 @@
 ONESHOT = (once->STOP).
-TRACE
-once
-ENDTRACE

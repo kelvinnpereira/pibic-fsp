@@ -1,6 +1,3 @@
 SWITCH = OFF,
 OFF    = (on -> ON),
 ON     = (off-> OFF).
-TRACE
-on -> off -> on -> off -> on -> off -> on -> off -> on -> off
-ENDTRACE

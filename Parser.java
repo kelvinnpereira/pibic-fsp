@@ -1,9 +1,5 @@
 
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.File;
 import java.util.ArrayList;
@@ -17,7 +13,7 @@ public class Parser {
 	public static final int _integer = 1;
 	public static final int _uppercase_id = 2;
 	public static final int _lowercase_id = 3;
-	public static final int maxT = 43;
+	public static final int maxT = 41;
 
 	static final boolean _T = true;
 	static final boolean _x = false;
@@ -30,8 +26,7 @@ public class Parser {
 	public Scanner scanner;
 	public Errors errors;
 
-	public BufferedWriter buff;
-    public ArrayList<Processo> processos;
+	public ArrayList<Processo> processos;
     public ArrayList<ProcessoLocal> locais;
     public ArrayList<Acao> traceArray;
     public ArrayList<Range> rangeArray;
@@ -45,7 +40,8 @@ public class Parser {
     public Vertice vertice_atual;
     private ScriptEngineManager manager = new ScriptEngineManager();
     private ScriptEngine eng = manager.getEngineByName("JavaScript");
-    private InterfaceGrafica ig = new InterfaceGrafica();
+    private InterfaceGrafica ig;
+    private Geracao generator;
 
     public void p(String str){
     	System.out.println(str);
@@ -103,30 +99,10 @@ public class Parser {
     }
 
     public void printTrace(){
+    	System.out.println("printTrace");
         for(int i=0;i<traceArray.size();i++){
             System.out.println("trace: "+traceArray.get(i));
         }
-    }
-
-    
-
-    public void novoTrace(String nome, int valor_indice) throws Error {
-        Acao a;
-        if(traceArray.size() == 0){
-            int i = primeiro.getAcoes().indexOf(new Acao(nome, primeiro));
-            if(i == -1) 
-                throw new Error("Trace invalido!Acao nao elegivel ou nao existe!!");
-            if(!primeiro.getAcoes().get(i).getInicio()) 
-                throw new Error("Trace invalido!Acao nao elegivel ou nao existe!!");
-            vertice_atual = grafo.busca(nome, primeiro.getAcoes().get(i).getId(), primeiro.getAcoes().get(i).getEstado(), valor_indice);
-            a = primeiro.getAcoes().get(i);
-        }else{
-            vertice_atual = vertice_atual == null ? null : vertice_atual.buscaVizinho(nome, valor_indice, 0);
-            //System.out.println(nome +", "+(vertice_atual == null ? -1 : vertice_atual.getEstado())+", "+valor_indice);
-            a = achaAcao(nome, vertice_atual == null ? -1 : vertice_atual.getEstado(), valor_indice);
-        }
-        if(a == null) throw new Error("Trace invalido! Acao nao elegivel ou nao existe!!");
-        traceArray.add(a);
     }
 
     public boolean isNum(char c){
@@ -161,7 +137,7 @@ public class Parser {
         }
     }
 
-    public boolean andaTrace(Vertice v, int t){
+    /*public boolean andaTrace(Vertice v, int t){
         ArrayList<Aresta> arestas = v.getArestas();
         tam_trace = t+1;
         if(arestas.size() == 1 && v.buscaNome("STOP") != null) {
@@ -180,9 +156,9 @@ public class Parser {
             }
         }
         return false;
-    }
+    }*/
 
-    public void verificaTrace() throws Error{
+    /*public void verificaTrace() throws Error{
         if(traceArray.size() == 0) return;
         Acao acao = null;
         ArrayList<Acao> acoes = primeiro.getAcoes();
@@ -198,7 +174,7 @@ public class Parser {
             if(vertices.get(i).getNome().equals(acao.getNome()) && vertices.get(i).getValorIndice() == acao.getValorIndice() && andaTrace(vertices.get(i), 0)) return;
         }
         if(true)throw new Error("Trace invalido!!");
-    }
+    }*/
 
     public String tiraIndice(String expr, String indice, String valor){
         if(expr.equals("") || indice.equals("") || valor.equals("")) return expr;
@@ -389,6 +365,7 @@ public class Parser {
 		constArray = new ArrayList<Const>();
 		locais = new ArrayList<ProcessoLocal>();
 		grafo = new HiperGrafo();
+		ig = new InterfaceGrafica(grafo, traceArray);
 		inf = sup = -1;
 		
 		start();
@@ -396,192 +373,36 @@ public class Parser {
 			start();
 		}
 		finalizaGrafo();
-		print();
-		
-		trace();
+		generator = new Geracao(processos, constArray, rangeArray, traceArray);
 		if(errors.count > 0) System.exit(1);
+		ig.setPrimeiro(primeiro);
+		ig.setGenerator(generator);
 		ig.start_interface();
-		try{
-		   verificaTrace();
-		   
-		   int i;
-		   Processo p, main = processos.get(0);
-		   buff = new BufferedWriter(new FileWriter("Constantes"+main.getNome()+".java"));
-		   buff.append(
-		       "public class Constantes"+main.getNome()+"{\n\n"
-		   );
-		   for(i=0;i<constArray.size();i++){
-		       buff.append(
-		           "    public static final int "+constArray.get(i).getNome()+" = "+constArray.get(i).getValor()+";\n"
-		       );
-		   }
-		   buff.append("}");
-		   buff.close();
-		    buff = new BufferedWriter(new FileWriter("Ranges"+main.getNome()+".java"));
-		   buff.append(
-		       "public class Ranges"+main.getNome()+"{\n\n"
-		   );
-		   for(i=0;i<rangeArray.size();i++){
-		       buff.append(
-		           "    public static final Range "+rangeArray.get(i).getNome()+" = new Range("+rangeArray.get(i).getInf()+", "+rangeArray.get(i).getSup()+");\n"
-		       );
-		   }
-		   buff.append("}");
-		   buff.close();
-		    for(i=0;i<processos.size();i++){
-		       p = processos.get(i);
-		       /*cria um arquivo .java com o nome do processo.*/
-		       String nomeP = p.getNome()+(p.getEstado() == -1 ? "": "_"+p.getEstado());
-		       buff = new BufferedWriter(new FileWriter(nomeP+".java"));
-		       buff.append(
-		           /*o nome da classe e o proprio do processo.*/
-		           "public class "+nomeP+"{\n\n"+
-		           /*contrutor da classe.*/
-		           "    "+nomeP+"(){\n"+
-		           "    }\n\n"
-		       );
-		       /*cada acao sera tranformada em um metodo da classe.*/
-		       ArrayList<Acao> acoes = p.getAcoes();
-		       for(int j=0;j<acoes.size();j++){
-		           String nomeA = acoes.get(j).getNome()+(acoes.get(j).getValorIndice() == -1 ? "": "_"+acoes.get(j).getValorIndice());
-		           buff.append(
-		               "    public void "+nomeA+"(){\n"+
-		               "        System.out.println(\""+acoes.get(j).getNome()+
-		                       (acoes.get(j).getValorIndice() != -1 ? "["+acoes.get(j).getValorIndice()+"]":"")+"\");\n"+
-		               "    }\n\n"
-		           );
-		       }
-		       buff.append("}");
-		       buff.close();
-		   }
-		   /*cria um arquivo .java com o nome Main+main.nome, que eh o nome do processo principal.*/
-		   buff = new BufferedWriter(new FileWriter("Main"+main.getNome()+".java"));
-		   /*nome da classe com o mesmo nome do arquivo.*/
-		   buff.append(
-		       "public class Main"+main.getNome()+" implements Runnable{\n\n"+
-		       /*thread com o nome thread+main.nome.*/
-		       "    Thread thread"+main.getNome()+";\n\n"
-		   );
-		   /*adiciona todos os objetos de cada classe(processo) como atributo da classe principal*/
-		   for(i=0;i<processos.size();i++){
-		       p = processos.get(i);
-		       String nomeP = p.getNome()+(p.getEstado() == -1 ? "": "_"+p.getEstado());
-		       buff.append("    "+nomeP+" obj_"+nomeP.toLowerCase()+";\n\n");
-		   }
-		   /*construtor da classe principal.*/
-		   buff.append("    Main"+main.getNome()+"(){\n");
-		   /*instancia cada atributo da classe principal.*/
-		   for(i=0;i<processos.size();i++){
-		       p = processos.get(i);
-		       String nomeP = p.getNome()+(p.getEstado() == -1 ? "": "_"+p.getEstado());
-		       buff.append(
-		           "        obj_"+nomeP.toLowerCase()+" = new "+nomeP+"();\n"
-		       );
-		   }
-		   buff.append(
-		       /*instancia a thread*/
-		       "        thread"+main.getNome()+" = new Thread(this);\n"+
-		       /*inicia a execucao da thread*/
-		       "        thread"+main.getNome()+".start();\n"+
-		       "    }\n\n"+
-		       /*execucao do programa com o metodo run*/
-		       "    public void run(){\n"+
-		       "        try{\n"+
-		       "            while(true){\n"+
-		       "                Thread.sleep(500);\n"
-		   );
-		   for(i=0;i<tam_trace&&i<traceArray.size();i++){
-		       String nomeP = traceArray.get(i).getProcesso().getNome().toLowerCase();
-		       nomeP += (traceArray.get(i).getProcesso().getEstado() == -1 ? "" : "_"+traceArray.get(i).getProcesso().getEstado());
-		       String nomeA = traceArray.get(i).getNome()+(traceArray.get(i).getValorIndice() == -1 ? "" : "_"+traceArray.get(i).getValorIndice());
-		       buff.append(
-		           "                obj_"+nomeP+"."+nomeA+"();\n"+
-		           "                Thread.sleep(1000);\n"
-		       );
-		   }
-		   if(stop){
-		       buff.append(
-		           "                System.out.println(\"STOP\");\n"
-		       );
-		   }
-		   if(error){
-		       buff.append(
-		           "                System.out.println(\"ERROR\");\n"+
-		           "                throw new Error(\"Chamada do processo ERROR\");\n"
-		       );
-		   }else{
-		       buff.append(
-		           "                System.exit(1);\n"
-		       );
-		   }
-		   buff.append(
-		       "            }\n"+
-		       "        }catch(Exception e){}\n"+
-		       "    }\n\n"+
-		       /*metodo main que instancia a classe principal*/
-		       "    public static void main(String args[]){\n"+
-		       "        Main"+main.getNome()+" main = new Main"+main.getNome()+"();\n"+
-		       "    }\n\n"+
-		       "}"
-		   );
-		   buff.close();
-		}catch(Exception e){
-		   System.out.println("Execessao: "+e.toString());
-		}
 		
 	}
 
 	void start() {
 		if (la.kind == 2) {
 			primitive_process();
-		} else if (la.kind == 22) {
-			constant_declaration();
-		} else if (la.kind == 24) {
-			range_declaration();
 		} else if (la.kind == 19) {
+			constant_declaration();
+		} else if (la.kind == 21) {
+			range_declaration();
+		} else if (la.kind == 16) {
 			composite_process();
-		} else SynErr(44);
-	}
-
-	void trace() {
-		Expect(4);
-		if (la.kind == 3) {
-			trace_action();
-			while (la.kind == 5) {
-				Get();
-				trace_action();
-			}
-		}
-		Expect(6);
-	}
-
-	void trace_action() {
-		String nome = la.val;
-		
-		Expect(3);
-		if (la.kind == 26) {
-			index_label();
-		}
-		try{
-		   int temp = calcExpr(expressao);
-		   novoTrace(nome, temp);
-		}catch(Error e){
-		   System.out.println(e.toString());
-		   System.exit(1);
-		}
-		
+		} else SynErr(42);
 	}
 
 	void primitive_process() {
 		String nome = la.val;
 		
 		Expect(2);
-		if (la.kind == 11) {
+		if (la.kind == 8) {
 			Get();
 			parameter_list();
-			Expect(12);
+			Expect(9);
 		}
-		if (la.kind == 26) {
+		if (la.kind == 23) {
 			index_label();
 		}
 		int indexPl = locais.indexOf(new ProcessoLocal(nome, -1, 0));
@@ -598,29 +419,28 @@ public class Parser {
 		}
 		acao_inicio = true;
 		expressao = "";
-		//print();
 		
-		Expect(23);
-		if (la.kind == 2 || la.kind == 37 || la.kind == 38) {
+		Expect(20);
+		if (la.kind == 2 || la.kind == 35 || la.kind == 36) {
 			local_process();
-		} else if (la.kind == 11) {
+		} else if (la.kind == 8) {
 			Get();
 			primitive_process_body();
-			Expect(12);
-		} else SynErr(45);
-		if (la.kind == 29) {
+			Expect(9);
+		} else SynErr(43);
+		if (la.kind == 26) {
 			Get();
-		} else if (la.kind == 31) {
+		} else if (la.kind == 28) {
 			Get();
-		} else SynErr(46);
+		} else SynErr(44);
 	}
 
 	void constant_declaration() {
-		Expect(22);
+		Expect(19);
 		String nome = la.val;
 		
 		Expect(2);
-		Expect(23);
+		Expect(20);
 		Const c = new Const(nome, Integer.parseInt(la.val));
 		if(!constArray.contains(c))
 		   constArray.add(c);
@@ -629,11 +449,11 @@ public class Parser {
 	}
 
 	void range_declaration() {
-		Expect(24);
+		Expect(21);
 		String nome = la.val;
 		
 		Expect(2);
-		Expect(23);
+		Expect(20);
 		int infLocal = -1;
 		if( isNum(la.val.charAt(0)) ){
 		   infLocal = Integer.parseInt(la.val);
@@ -644,7 +464,7 @@ public class Parser {
 		}
 		
 		expr();
-		Expect(25);
+		Expect(22);
 		int supLocal = -1;
 		if( isNum(la.val.charAt(0)) ){
 		   supLocal = Integer.parseInt(la.val);
@@ -663,29 +483,29 @@ public class Parser {
 	}
 
 	void composite_process() {
-		Expect(19);
+		Expect(16);
 		Expect(2);
-		if (la.kind == 11) {
+		if (la.kind == 8) {
 			Get();
 			parameter_list();
-			Expect(12);
+			Expect(9);
 		}
-		Expect(23);
+		Expect(20);
 		composite_body();
-		if (la.kind == 33 || la.kind == 34) {
+		if (la.kind == 30 || la.kind == 31) {
 			label_visibility();
 		}
-		if (la.kind == 10) {
+		if (la.kind == 7) {
 			relabels();
 		}
-		Expect(29);
+		Expect(26);
 	}
 
 	void expr() {
 		term();
-		while (la.kind == 7 || la.kind == 8) {
+		while (la.kind == 4 || la.kind == 5) {
 			expressao += la.val;
-			if (la.kind == 7) {
+			if (la.kind == 4) {
 				Get();
 			} else {
 				Get();
@@ -696,9 +516,9 @@ public class Parser {
 
 	void term() {
 		factor();
-		while (la.kind == 9 || la.kind == 10) {
+		while (la.kind == 6 || la.kind == 7) {
 			expressao += la.val;
-			if (la.kind == 9) {
+			if (la.kind == 6) {
 				Get();
 			} else {
 				Get();
@@ -713,21 +533,20 @@ public class Parser {
 		else
 		   expressao += la.val;
 		
-		if (la.kind == 11) {
+		if (la.kind == 8) {
 			Get();
 			expr();
 			if(la.val.charAt(0) == '(' || la.val.charAt(0) == ')' )
 			      expressao += la.val;
 			
-			la();
-			Expect(12);
+			Expect(9);
 		} else if (la.kind == 2) {
 			Get();
 		} else if (la.kind == 3) {
 			Get();
 		} else if (la.kind == 1) {
 			Get();
-		} else SynErr(47);
+		} else SynErr(45);
 	}
 
 	void boolean_expr() {
@@ -740,6 +559,18 @@ public class Parser {
 			bool += la.val;
 			
 			switch (la.kind) {
+			case 10: {
+				Get();
+				break;
+			}
+			case 11: {
+				Get();
+				break;
+			}
+			case 12: {
+				Get();
+				break;
+			}
 			case 13: {
 				Get();
 				break;
@@ -764,18 +595,6 @@ public class Parser {
 				Get();
 				break;
 			}
-			case 19: {
-				Get();
-				break;
-			}
-			case 20: {
-				Get();
-				break;
-			}
-			case 21: {
-				Get();
-				break;
-			}
 			}
 			expressao = "";
 			
@@ -783,17 +602,15 @@ public class Parser {
 			bool += expressao;
 			
 		}
-		System.out.println("bool: "+bool);
-		
 	}
 
 	void index() {
-		Expect(26);
+		Expect(23);
 		index = la.val;
 		expressao = "";
 		
 		expr();
-		while (la.kind == 27) {
+		while (la.kind == 24) {
 			Get();
 			String id = la.val;
 			expressao = "";
@@ -808,19 +625,19 @@ public class Parser {
 			}
 			expressao = "";
 			
-			while (la.kind == 25) {
+			while (la.kind == 22) {
 				Get();
 				expr();
 				sup = calcExpr(expressao);
 				
 			}
 		}
-		Expect(28);
+		Expect(25);
 	}
 
 	void index_label() {
 		index();
-		while (la.kind == 26) {
+		while (la.kind == 23) {
 			index();
 		}
 	}
@@ -829,7 +646,7 @@ public class Parser {
 		String nome = la.val;
 		
 		Expect(3);
-		if (la.kind == 26) {
+		if (la.kind == 23) {
 			index_label();
 		}
 		Acao a = null;
@@ -844,7 +661,6 @@ public class Parser {
 		  			acao_range(nome, processo_atual);
 		  	}else{
 		  		a = acao_simples(nome, processo_atual, processo_atual.getIndice(), calcExpr(tiraIndice(expressao, processo_atual.getIndice(), processo_atual.getEstado()+"")));
-		   	la();
 		   	if(!la.val.equals(",")){
 		   		processo_atual.setAcoesAtuais(new ArrayList<Acao>());
 		        processo_atual.getAcoesAtuais().add(a);
@@ -857,13 +673,12 @@ public class Parser {
 		  if(la.val.equals("->")) acao_inicio = false;
 		  acao_atual = a;
 		  processo_atual = p;
-		  print();
 		
 	}
 
 	void action() {
 		simple_action();
-		while (la.kind == 29) {
+		while (la.kind == 26) {
 			Get();
 			simple_action();
 		}
@@ -872,78 +687,78 @@ public class Parser {
 	void action_set() {
 		ArrayList<Acao> acoes_atuais = new ArrayList<Acao>();
 		
-		Expect(30);
+		Expect(27);
 		action();
 		acoes_atuais.add(acao_atual);
 		
-		while (la.kind == 31) {
+		while (la.kind == 28) {
 			Get();
 			action();
 			acoes_atuais.add(acao_atual);
 			
 		}
-		Expect(32);
+		Expect(29);
 		processo_atual.setAcoesAtuais(acoes_atuais);
 		
 	}
 
 	void alphabet_extension() {
-		Expect(7);
+		Expect(4);
 		action_set();
 	}
 
 	void label_visibility() {
-		if (la.kind == 33) {
+		if (la.kind == 30) {
 			hide_label();
-		} else if (la.kind == 34) {
+		} else if (la.kind == 31) {
 			expose_label();
-		} else SynErr(48);
+		} else SynErr(46);
 	}
 
 	void hide_label() {
-		Expect(33);
+		Expect(30);
 		action_set();
 	}
 
 	void expose_label() {
-		Expect(34);
+		Expect(31);
 		action_set();
 	}
 
 	void relabels() {
-		Expect(10);
+		Expect(7);
 		relabel_set();
 	}
 
 	void relabel_set() {
-		Expect(30);
+		Expect(27);
 		relabel();
-		while (la.kind == 31) {
+		while (la.kind == 28) {
 			Get();
 			relabel();
 		}
-		Expect(32);
+		Expect(29);
 	}
 
 	void relabel() {
 		if (la.kind == 3) {
 			simple_relabel();
-		} else if (la.kind == 35) {
+		} else if (la.kind == 32) {
 			Get();
 			index();
 			relabel_set();
-		} else SynErr(49);
+		} else SynErr(47);
 	}
 
 	void simple_relabel() {
 		action();
-		Expect(10);
+		Expect(7);
 		action();
 	}
 
 	void parameter_list() {
 		parameter();
-		while (la.kind == 31) {
+		while (la.kind == 28) {
 			Get();
 			parameter();
 		}
@@ -954,7 +769,7 @@ public class Parser {
 		
 		if (la.kind == 2) {
 			Get();
-			if (la.kind == 26) {
+			if (la.kind == 23) {
 				index();
 			}
 			if(processo_atual.getEstado() == -1){
@@ -964,7 +779,7 @@ public class Parser {
 			}
 			expressao = bool = "";
 			
-		} else if (la.kind == 37 || la.kind == 38) {
+		} else if (la.kind == 35 || la.kind == 36) {
 			Acao a = null;
 			Processo p = processo_atual;
 			if(primeiro == null)
@@ -979,36 +794,36 @@ public class Parser {
 			expressao = bool = "";
 			processo_atual = p;
 			
-			if (la.kind == 37) {
+			if (la.kind == 35) {
 				Get();
 			} else {
 				Get();
 			}
-		} else SynErr(50);
+		} else SynErr(48);
 	}
 
 	void primitive_process_body() {
 		process_body();
-		while (la.kind == 5 || la.kind == 36) {
+		while (la.kind == 33 || la.kind == 34) {
 			if(la.val.equals("|")){
 			   acao_inicio = true;
 			   zeraAcoesAtuais();
 			}
 			
-			if (la.kind == 5) {
+			if (la.kind == 33) {
 				Get();
 			} else {
 				Get();
 			}
 			process_body();
 		}
-		if (la.kind == 7) {
+		if (la.kind == 4) {
 			alphabet_extension();
 		}
-		if (la.kind == 33 || la.kind == 34) {
+		if (la.kind == 30 || la.kind == 31) {
 			label_visibility();
 		}
-		if (la.kind == 10) {
+		if (la.kind == 7) {
 			relabels();
 		}
 	}
@@ -1017,7 +832,7 @@ public class Parser {
 		String nome = la.val;
 		
 		Expect(2);
-		Expect(23);
+		Expect(20);
 		Const c = new Const(nome, Integer.parseInt(la.val));
 		if(!constArray.contains(c))
 		   constArray.add(c);
@@ -1026,94 +841,94 @@ public class Parser {
 	}
 
 	void process_body() {
-		if (la.kind == 3 || la.kind == 30 || la.kind == 39) {
+		if (la.kind == 3 || la.kind == 27 || la.kind == 37) {
 			choice();
-		} else if (la.kind == 2 || la.kind == 37 || la.kind == 38) {
+		} else if (la.kind == 2 || la.kind == 35 || la.kind == 36) {
 			local_process();
-		} else if (la.kind == 40) {
+		} else if (la.kind == 38) {
 			condition();
-		} else SynErr(51);
+		} else SynErr(49);
 	}
 
 	void choice() {
-		if (la.kind == 39) {
+		if (la.kind == 37) {
 			Get();
 			boolean_expr();
-			Expect(12);
+			Expect(9);
 		}
 		expressao = "";
 		
-		if (la.kind == 30) {
+		if (la.kind == 27) {
 			action_set();
 		} else if (la.kind == 3) {
 			action();
-		} else SynErr(52);
-		Expect(5);
+		} else SynErr(50);
+		Expect(33);
 		process_body();
 	}
 
 	void condition() {
-		Expect(40);
+		Expect(38);
 		boolean_expr();
-		Expect(41);
+		Expect(39);
 		process_body();
-		Expect(42);
+		Expect(40);
 		process_body();
 	}
 
 	void composite_body() {
 		if (la.kind == 2 || la.kind == 3) {
 			process_instance();
-		} else if (la.kind == 11) {
+		} else if (la.kind == 8) {
 			parallel_list();
-		} else if (la.kind == 40) {
+		} else if (la.kind == 38) {
 			composite_conditional();
-		} else if (la.kind == 35) {
+		} else if (la.kind == 32) {
 			compositi_replicator();
-		} else SynErr(53);
+		} else SynErr(51);
 	}
 
 	void process_instance() {
 		if (la.kind == 3) {
 			action();
-			Expect(27);
+			Expect(24);
 		}
 		Expect(2);
-		if (la.kind == 11) {
+		if (la.kind == 8) {
 			Get();
 			actual_parameter_list();
-			Expect(12);
+			Expect(9);
 		}
 	}
 
 	void parallel_list() {
-		Expect(11);
+		Expect(8);
 		composite_body();
-		while (la.kind == 19) {
+		while (la.kind == 16) {
 			Get();
 			composite_body();
 		}
-		Expect(12);
+		Expect(9);
 	}
 
 	void composite_conditional() {
-		Expect(40);
+		Expect(38);
 		boolean_expr();
-		Expect(41);
+		Expect(39);
 		composite_body();
-		Expect(42);
+		Expect(40);
 		composite_body();
 	}
 
 	void compositi_replicator() {
-		Expect(35);
+		Expect(32);
 		index();
 		composite_body();
 	}
 
 	void actual_parameter_list() {
 		expr();
-		while (la.kind == 31) {
+		while (la.kind == 28) {
 			Get();
 			expr();
 		}
@@ -1131,9 +946,9 @@ public class Parser {
 	}
 
 	private static final boolean[][] set = {
-		{_T,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x},
-		{_x,_x,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_T, _x,_x,_T,_x, _T,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x},
-		{_x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_T,_T,_T, _T,_T,_T,_T, _T,_T,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x}
+		{_T,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x},
+		{_x,_x,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _T,_x,_x,_T, _x,_T,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x},
+		{_x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_T,_T, _T,_T,_T,_T, _T,_T,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x}
 
 	};
 } // end Parser
@@ -1162,56 +977,54 @@ class Errors {
 			case 1: s = "integer expected"; break;
 			case 2: s = "uppercase_id expected"; break;
 			case 3: s = "lowercase_id expected"; break;
-			case 4: s = "\"TRACE\" expected"; break;
-			case 5: s = "\"->\" expected"; break;
-			case 6: s = "\"ENDTRACE\" expected"; break;
-			case 7: s = "\"+\" expected"; break;
-			case 8: s = "\"-\" expected"; break;
-			case 9: s = "\"*\" expected"; break;
-			case 10: s = "\"/\" expected"; break;
-			case 11: s = "\"(\" expected"; break;
-			case 12: s = "\")\" expected"; break;
-			case 13: s = "\">\" expected"; break;
-			case 14: s = "\"<\" expected"; break;
-			case 15: s = "\">=\" expected"; break;
-			case 16: s = "\"<=\" expected"; break;
-			case 17: s = "\"==\" expected"; break;
-			case 18: s = "\"&&\" expected"; break;
-			case 19: s = "\"||\" expected"; break;
-			case 20: s = "\"!\" expected"; break;
-			case 21: s = "\"!=\" expected"; break;
-			case 22: s = "\"const\" expected"; break;
-			case 23: s = "\"=\" expected"; break;
-			case 24: s = "\"range\" expected"; break;
-			case 25: s = "\"..\" expected"; break;
-			case 26: s = "\"[\" expected"; break;
-			case 27: s = "\":\" expected"; break;
-			case 28: s = "\"]\" expected"; break;
-			case 29: s = "\".\" expected"; break;
-			case 30: s = "\"{\" expected"; break;
-			case 31: s = "\",\" expected"; break;
-			case 32: s = "\"}\" expected"; break;
-			case 33: s = "\"\\\\\" expected"; break;
-			case 34: s = "\"@\" expected"; break;
-			case 35: s = "\"forall\" expected"; break;
-			case 36: s = "\"|\" expected"; break;
-			case 37: s = "\"STOP\" expected"; break;
-			case 38: s = "\"ERROR\" expected"; break;
-			case 39: s = "\"when(\" expected"; break;
-			case 40: s = "\"if\" expected"; break;
-			case 41: s = "\"then\" expected"; break;
-			case 42: s = "\"else\" expected"; break;
-			case 43: s = "??? expected"; break;
-			case 44: s = "invalid start"; break;
-			case 45: s = "invalid primitive_process"; break;
-			case 46: s = "invalid primitive_process"; break;
-			case 47: s = "invalid factor"; break;
-			case 48: s = "invalid label_visibility"; break;
-			case 49: s = "invalid relabel"; break;
-			case 50: s = "invalid local_process"; break;
-			case 51: s = "invalid process_body"; break;
-			case 52: s = "invalid choice"; break;
-			case 53: s = "invalid composite_body"; break;
+			case 4: s = "\"+\" expected"; break;
+			case 5: s = "\"-\" expected"; break;
+			case 6: s = "\"*\" expected"; break;
+			case 7: s = "\"/\" expected"; break;
+			case 8: s = "\"(\" expected"; break;
+			case 9: s = "\")\" expected"; break;
+			case 10: s = "\">\" expected"; break;
+			case 11: s = "\"<\" expected"; break;
+			case 12: s = "\">=\" expected"; break;
+			case 13: s = "\"<=\" expected"; break;
+			case 14: s = "\"==\" expected"; break;
+			case 15: s = "\"&&\" expected"; break;
+			case 16: s = "\"||\" expected"; break;
+			case 17: s = "\"!\" expected"; break;
+			case 18: s = "\"!=\" expected"; break;
+			case 19: s = "\"const\" expected"; break;
+			case 20: s = "\"=\" expected"; break;
+			case 21: s = "\"range\" expected"; break;
+			case 22: s = "\"..\" expected"; break;
+			case 23: s = "\"[\" expected"; break;
+			case 24: s = "\":\" expected"; break;
+			case 25: s = "\"]\" expected"; break;
+			case 26: s = "\".\" expected"; break;
+			case 27: s = "\"{\" expected"; break;
+			case 28: s = "\",\" expected"; break;
+			case 29: s = "\"}\" expected"; break;
+			case 30: s = "\"\\\\\" expected"; break;
+			case 31: s = "\"@\" expected"; break;
+			case 32: s = "\"forall\" expected"; break;
+			case 33: s = "\"->\" expected"; break;
+			case 34: s = "\"|\" expected"; break;
+			case 35: s = "\"STOP\" expected"; break;
+			case 36: s = "\"ERROR\" expected"; break;
+			case 37: s = "\"when(\" expected"; break;
+			case 38: s = "\"if\" expected"; break;
+			case 39: s = "\"then\" expected"; break;
+			case 40: s = "\"else\" expected"; break;
+			case 41: s = "??? expected"; break;
+			case 42: s = "invalid start"; break;
+			case 43: s = "invalid primitive_process"; break;
+			case 44: s = "invalid primitive_process"; break;
+			case 45: s = "invalid factor"; break;
+			case 46: s = "invalid label_visibility"; break;
+			case 47: s = "invalid relabel"; break;
+			case 48: s = "invalid local_process"; break;
+			case 49: s = "invalid process_body"; break;
+			case 50: s = "invalid choice"; break;
+			case 51: s = "invalid composite_body"; break;
 			default: s = "error " + n; break;
 		}
 		printMsg(line, col, s);
