@@ -96,4 +96,13 @@ public class Vertice{
         return id == v.id && estado == v.estado && valor_indice == v.valor_indice && nome.equals(v.nome);
     }
 
+    public Vertice only(){
+        return  arestas.size() == 1 && 
+                arestas.get(0).getVertices().size() == 1 && 
+                (   arestas.get(0).getVertices().get(0).getNome().equals("STOP") || 
+                    arestas.get(0).getVertices().get(0).getNome().equals("ERROR")
+                ) 
+                ? arestas.get(0).getVertices().get(0) : null;
+    }
+
 }

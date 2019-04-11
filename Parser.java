@@ -139,7 +139,6 @@ public class Parser {
 
     /*public boolean andaTrace(Vertice v, int t){
         ArrayList<Aresta> arestas = v.getArestas();
-        tam_trace = t+1;
         if(arestas.size() == 1 && v.buscaNome("STOP") != null) {
             stop = true;
             return true;
