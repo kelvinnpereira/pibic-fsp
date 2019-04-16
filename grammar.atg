@@ -88,7 +88,7 @@ composite_process = "||"uppercase_id ["("parameter_list")"] "=" composite_body[l
 
 composite_body = process_instance | parallel_list | composite_conditional | compositi_replicator .
 
-compositi_replicator = "forall" index composite_body.
+composite_replicator = "forall" index composite_body.
 
 composite_conditional = "if" boolean_expr "then" composite_body "else" composite_body.
 
