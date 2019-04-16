@@ -86,7 +86,7 @@ condition = "if" boolean_expr "then" process_body "else" process_body.
 
 composite_process = "||"uppercase_id ["("parameter_list")"] "=" composite_body[label_visibility][relabels]".".
 
-composite_body = process_instance | parallel_list | composite_conditional | compositi_replicator .
+composite_body = process_instance | parallel_list | composite_conditional | composite_replicator .
 
 composite_replicator = "forall" index composite_body.
 
