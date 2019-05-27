@@ -28,20 +28,50 @@ public class Parser {
 
 	public ArrayList<Processo> processos;
     public ArrayList<ProcessoLocal> locais;
-    public ArrayList<Acao> traceArray;
     public ArrayList<Range> rangeArray;
     public ArrayList<Const> constArray;
-    public Processo processo_atual, primeiro = null;
-    public Acao acao_atual = null;
-    public int sup, inf, valor = 0, valor_expr = -1, tam_trace = 0;
+    public Processo processo_atual, primeiro_atual;
+    public Acao acao_atual;
+    public int sup, inf, valor_expr;
     public String index, expressao = "", bool = "";
+    public ArrayList<HiperGrafo> grafoArray = new ArrayList<HiperGrafo>();
     public HiperGrafo grafo;
-    public boolean error, stop, acao_inicio, conjunto;
+    public boolean acao_inicio, conjunto;
     public Vertice vertice_atual;
     private ScriptEngineManager manager = new ScriptEngineManager();
     private ScriptEngine eng = manager.getEngineByName("JavaScript");
-    private InterfaceGrafica ig;
-    private Geracao generator;
+    private ArrayList<ProcessThread> pthreadArray = new ArrayList<ProcessThread>();
+    private Geracao generator = new Geracao(pthreadArray);
+    private InterfaceGrafica ig = new InterfaceGrafica(grafoArray, generator);
+
+    public void init(){
+        processos = new ArrayList<Processo>();
+        locais = new ArrayList<ProcessoLocal>();
+        rangeArray = new ArrayList<Range>();
+        constArray = new ArrayList<Const>();
+        processo_atual = primeiro_atual = null;
+        acao_atual = null;
+        inf = sup = valor_expr = -1;
+        index = expressao = bool = "";
+        grafo = new HiperGrafo();
+        grafoArray.add(grafo);
+        acao_inicio = conjunto = false;
+        vertice_atual = null;
+    }
+
+    public void newThread(){
+        finalizaGrafo();
+        pthreadArray.add(new ProcessThread(processos, constArray, rangeArray, primeiro_atual));
+        if(errors.count > 0) System.exit(1);
+        init();
+    }
+
+    public void startInterface(){
+    	for(int i=0;i<grafoArray.size();i++){
+    		System.out.println(grafoArray.get(i));
+    	}
+    	ig.start_interface();
+    }
 
     public void p(String str){
     	System.out.println(str);
@@ -83,7 +113,7 @@ public class Parser {
         if(i != -1)
             a.setId(pa.getAcoes().get(i).getId() + 1);
         pa.getAcoes().add(a);
-        ig.addCheckBox(a);
+        ig.addCheckBox(a, grafo);
         return a;
     }
 
@@ -96,13 +126,6 @@ public class Parser {
             }
         }
         return null;
-    }
-
-    public void printTrace(){
-    	System.out.println("printTrace");
-        for(int i=0;i<traceArray.size();i++){
-            System.out.println("trace: "+traceArray.get(i));
-        }
     }
 
     public boolean isNum(char c){
@@ -297,27 +320,6 @@ public class Parser {
     	}
     }
 
-    public void init(){
-        processos = new ArrayList<Processo>();
-        traceArray = new ArrayList<Acao>();
-        rangeArray = new ArrayList<Range>();
-        constArray = new ArrayList<Const>();
-        locais = new ArrayList<ProcessoLocal>();
-        grafo = new HiperGrafo();
-        ig = new InterfaceGrafica(grafo, traceArray);
-        inf = sup = -1;
-    }
-
-    public void gerar(){
-        finalizaGrafo();
-        generator = new Geracao(processos, constArray, rangeArray, traceArray);
-        if(errors.count > 0) System.exit(1);
-        ig.setPrimeiro(primeiro);
-        ig.setGenerator(generator);
-        ig.start_interface();
-        init();
-    }
-
 
 
 	public Parser(Scanner scanner) {
@@ -385,6 +387,8 @@ public class Parser {
 		while (StartOf(1)) {
 			start();
 		}
+		startInterface();
+		
 	}
 
 	void start() {
@@ -417,7 +421,7 @@ public class Parser {
 		   for(int i=inf;i<=sup;i++){
 		       p = novoProcesso(nome, index, i, new Range(inf, sup));
 		       if(i == inf) processo_atual = p;
-		       if(i == locais.get(indexPl).getValorIndice() && primeiro == null) primeiro = p;
+		       if(i == locais.get(indexPl).getValorIndice() && primeiro_atual == null) primeiro_atual = p;
 		   }
 		   valor_expr = inf = sup = -1;
 		}else{
@@ -435,7 +439,7 @@ public class Parser {
 			Expect(9);
 		} else SynErr(43);
 		if(la.val.equals(".")){
-		   gerar();
+		   newThread();
 		}
 		
 		if (la.kind == 26) {
@@ -660,8 +664,8 @@ public class Parser {
 			index_label();
 		}
 		Acao a = null;
-		if(primeiro == null)
-		primeiro = processo_atual;
+		if(primeiro_atual == null)
+		primeiro_atual = processo_atual;
 		Processo p = processo_atual;
 		  if( processo_atual.getEstado() == -1 ){
 		  	if(inf != -1 && sup != -1){
@@ -792,8 +796,8 @@ public class Parser {
 		} else if (la.kind == 35 || la.kind == 36) {
 			Acao a = null;
 			Processo p = processo_atual;
-			if(primeiro == null)
-			primeiro = processo_atual;
+			if(primeiro_atual == null)
+			primeiro_atual = processo_atual;
 			if( processo_atual.getEstado() == -1 ){
 			a = acao_simples(la.val, processo_atual, processo_atual.getIndice(), calcExpr(tiraIndice(expressao, processo_atual.getIndice(), processo_atual.getEstado()+"")));
 			processo_atual.setAcoesAtuais(new ArrayList<Acao>());

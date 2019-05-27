@@ -18,12 +18,12 @@ public class InterfaceGrafica{
     ListenerBox listener_box;
     ListenerGenerate listener_generate;
     ListenerView listener_view;
-    HiperGrafo grafo;
+    ArrayList<HiperGrafo> grafoArray;
     Processo primeiro;
     ArrayList<Acao> traceArray;
     Geracao generator;
 
-    InterfaceGrafica(HiperGrafo grafo, ArrayList<Acao> traceArray){
+    InterfaceGrafica(ArrayList<HiperGrafo> grafoArray, Geracao generator){
         frame = new JFrame("Animator");
         panel = new JPanel();
         scroll_panel = new JScrollPane(panel);
@@ -36,16 +36,9 @@ public class InterfaceGrafica{
         view = new JButton("View Code");
     	boxes = new ArrayList<AcaoCheckBox>();
         pop_up = new JOptionPane();
-        this.grafo = grafo;
-        this.traceArray = traceArray;
-    }
-
-    public void setPrimeiro(Processo primeiro){
-        this.primeiro = primeiro;
-    }
-
-    public void setGenerator(Geracao generator){
         this.generator = generator;
+        this.grafoArray = grafoArray;
+        this.traceArray = generator.getTraceArray();
     }
 
     public void start_interface(){
@@ -66,7 +59,7 @@ public class InterfaceGrafica{
         view.addActionListener(listener_view);
     	
     	for(int i=0;i<boxes.size();i++){
-            if(boxes.get(i).getAcao().getInicio() && boxes.get(i).getAcao().getProcesso() == primeiro){
+            if(boxes.get(i).getAcao().getInicio() && generator.isPrimeiro(boxes.get(i).getAcao().getProcesso()) ){
         		boxes.get(i).getBox().setEnabled(true);
             }else{
                 boxes.get(i).getBox().setEnabled(false);
@@ -90,9 +83,15 @@ public class InterfaceGrafica{
 
     private class ListenerBox implements ActionListener{
     	public void actionPerformed(ActionEvent e){
+            AcaoCheckBox box = null;
             for(int i=0;i<boxes.size();i++){
-                boxes.get(i).getBox().setEnabled(false);
-                boxes.get(i).getBox().setSelected(false);
+                if(e.getSource() == boxes.get(i).getBox()) box = boxes.get(i);
+            }
+            for(int i=0;i<boxes.size();i++){
+                if(box.getGrafo() == boxes.get(i).getGrafo()){
+                    boxes.get(i).getBox().setEnabled(false);
+                    boxes.get(i).getBox().setSelected(false);
+                }
             }
     		for(int i=0;i<boxes.size();i++){
     			if(e.getSource() == boxes.get(i).getBox()){
@@ -106,10 +105,10 @@ public class InterfaceGrafica{
 
     private class ListenerGenerate implements ActionListener{
     	public void actionPerformed(ActionEvent e){
-            generator.gerate();
+            /*generator.gerate();
             pop_up.showMessageDialog(frame, "Generated Code Successful");
             generate.setEnabled(false);
-            if(!traceArray.get(traceArray.size()-1).getNome().equals("ERROR")) view.setEnabled(true);
+            if(!traceArray.get(traceArray.size()-1).getNome().equals("ERROR")) view.setEnabled(true);*/
 	    }
 	}
 
@@ -123,9 +122,9 @@ public class InterfaceGrafica{
         }
     }
 	
-	public void addCheckBox(Acao acao){
+	public void addCheckBox(Acao acao, HiperGrafo grafo){
         if(acao.getNome().equals("STOP") || acao.getNome().equals("ERROR")) return;
-		boxes.add(new AcaoCheckBox(acao, new JCheckBox(acao.getNome()+(acao.getValorIndice() == -1 ? "" : "["+acao.getValorIndice()+"]"))));
+		boxes.add(new AcaoCheckBox(acao, new JCheckBox(acao.getNome()+(acao.getValorIndice() == -1 ? "" : "["+acao.getValorIndice()+"]")), grafo));
 	}
 
     public ArrayList<AcaoCheckBox> getBoxes(){
@@ -133,21 +132,27 @@ public class InterfaceGrafica{
     }
 
     private void atualizaInterface(AcaoCheckBox box){
+        HiperGrafo grafo;
         Acao a = box.getAcao();
-        Vertice v = grafo.busca(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice()), stop_error = v.only();
-        if(stop_error != null){
-            traceArray.add(new Acao(stop_error.getNome(), null));
-            text_area.setText(text_area.getText()+""+stop_error.getNome()+"\n");
-            return;
-        }
-        for(int i=0;i<boxes.size();i++){
-            ArrayList<Aresta> arestas = v.getArestas();
-            for(int j=0;j<arestas.size();j++){
-                ArrayList<Vertice> vertices = arestas.get(j).getVertices();
-                for(int k=0;k<vertices.size();k++){
-                    a = boxes.get(i).getAcao();                    
-                    if(a.getNome().equals(vertices.get(k).getNome()) && a.getId() == vertices.get(k).getId() && a.getEstado() == vertices.get(k).getEstado() && a.getValorIndice() == vertices.get(k).getValorIndice()){
-                        boxes.get(i).getBox().setEnabled(true);
+        for(int cont=0;cont<grafoArray.size();cont++){
+            if(box.getGrafo() == grafoArray.get(cont)){
+                grafo = grafoArray.get(cont);
+                Vertice v = grafo.busca(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice()), stop_error = v.only();
+                if(stop_error != null){
+                    traceArray.add(new Acao(stop_error.getNome(), null));
+                    text_area.setText(text_area.getText()+""+stop_error.getNome()+"\n");
+                    return;
+                }
+                for(int i=0;i<boxes.size();i++){
+                    ArrayList<Aresta> arestas = v.getArestas();
+                    for(int j=0;j<arestas.size();j++){
+                        ArrayList<Vertice> vertices = arestas.get(j).getVertices();
+                        for(int k=0;k<vertices.size();k++){
+                            a = boxes.get(i).getAcao();                    
+                            if(a.getNome().equals(vertices.get(k).getNome()) && a.getId() == vertices.get(k).getId() && a.getEstado() == vertices.get(k).getEstado() && a.getValorIndice() == vertices.get(k).getValorIndice()){
+                                boxes.get(i).getBox().setEnabled(true);
+                            }
+                        }
                     }
                 }
             }
