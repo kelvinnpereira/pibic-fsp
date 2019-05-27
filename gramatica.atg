@@ -278,6 +278,27 @@ COMPILER FSP $F
     	}
     }
 
+    public void init(){
+        processos = new ArrayList<Processo>();
+        traceArray = new ArrayList<Acao>();
+        rangeArray = new ArrayList<Range>();
+        constArray = new ArrayList<Const>();
+        locais = new ArrayList<ProcessoLocal>();
+        grafo = new HiperGrafo();
+        ig = new InterfaceGrafica(grafo, traceArray);
+        inf = sup = -1;
+    }
+
+    public void gerar(){
+        finalizaGrafo();
+        generator = new Geracao(processos, constArray, rangeArray, traceArray);
+        if(errors.count > 0) System.exit(1);
+        ig.setPrimeiro(primeiro);
+        ig.setGenerator(generator);
+        ig.start_interface();
+        init();
+    }
+
 CHARACTERS
 lowercase_letter = 'a' .. 'z'.
 
@@ -301,27 +322,9 @@ PRODUCTIONS
 FSP = 
 
 (.
-    processos = new ArrayList<Processo>();
-    traceArray = new ArrayList<Acao>();
-    rangeArray = new ArrayList<Range>();
-    constArray = new ArrayList<Const>();
-    locais = new ArrayList<ProcessoLocal>();
-    grafo = new HiperGrafo();
-    ig = new InterfaceGrafica(grafo, traceArray);
-    inf = sup = -1;
+    init();
 .)
-
-start{start}
-
-(.
-    finalizaGrafo();
-    generator = new Geracao(processos, constArray, rangeArray, traceArray);
-    if(errors.count > 0) System.exit(1);
-    ig.setPrimeiro(primeiro);
-    ig.setGenerator(generator);
-    ig.start_interface();
-.)
-.
+start{start}.
 
 start = primitive_process | constant_declaration | range_declaration | composite_process.
 
@@ -580,7 +583,15 @@ uppercase_id["("parameter_list")"][index_label]
     expressao = "";
 .)
 
-"=" ( local_process | "(" primitive_process_body ")" ) ("." | ",").
+"=" ( local_process | "(" primitive_process_body ")" )
+
+(.
+    if(la.val.equals(".")){
+        gerar();
+    }
+.)
+
+("." | ",").
 
 parameter_list = parameter {","parameter}.
 
