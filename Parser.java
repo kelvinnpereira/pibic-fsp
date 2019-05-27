@@ -297,6 +297,27 @@ public class Parser {
     	}
     }
 
+    public void init(){
+        processos = new ArrayList<Processo>();
+        traceArray = new ArrayList<Acao>();
+        rangeArray = new ArrayList<Range>();
+        constArray = new ArrayList<Const>();
+        locais = new ArrayList<ProcessoLocal>();
+        grafo = new HiperGrafo();
+        ig = new InterfaceGrafica(grafo, traceArray);
+        inf = sup = -1;
+    }
+
+    public void gerar(){
+        finalizaGrafo();
+        generator = new Geracao(processos, constArray, rangeArray, traceArray);
+        if(errors.count > 0) System.exit(1);
+        ig.setPrimeiro(primeiro);
+        ig.setGenerator(generator);
+        ig.start_interface();
+        init();
+    }
+
 
 
 	public Parser(Scanner scanner) {
@@ -358,26 +379,12 @@ public class Parser {
 	}
 	
 	void FSP() {
-		processos = new ArrayList<Processo>();
-		traceArray = new ArrayList<Acao>();
-		rangeArray = new ArrayList<Range>();
-		constArray = new ArrayList<Const>();
-		locais = new ArrayList<ProcessoLocal>();
-		grafo = new HiperGrafo();
-		ig = new InterfaceGrafica(grafo, traceArray);
-		inf = sup = -1;
+		init();
 		
 		start();
 		while (StartOf(1)) {
 			start();
 		}
-		finalizaGrafo();
-		generator = new Geracao(processos, constArray, rangeArray, traceArray);
-		if(errors.count > 0) System.exit(1);
-		ig.setPrimeiro(primeiro);
-		ig.setGenerator(generator);
-		ig.start_interface();
-		
 	}
 
 	void start() {
@@ -427,6 +434,10 @@ public class Parser {
 			primitive_process_body();
 			Expect(9);
 		} else SynErr(43);
+		if(la.val.equals(".")){
+		   gerar();
+		}
+		
 		if (la.kind == 26) {
 			Get();
 		} else if (la.kind == 28) {
