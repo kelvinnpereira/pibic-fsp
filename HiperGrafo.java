@@ -18,13 +18,22 @@ public class HiperGrafo{
         return this.arestas;
     }
 
-    public Vertice insereVertice(String nome, int id, int estado, int valor_indice){
+    public Vertice insereVertice(String nome, int id, int estado, int valor_indice, boolean compartilhada){
         if(nome == null) return null;
         Vertice existe = busca(nome, id, estado, valor_indice);
         if(existe != null) return existe;
-        Vertice v = new Vertice(nome, id, estado, valor_indice);
+        Vertice v = new Vertice(nome, id, estado, valor_indice, compartilhada);
         vertices.add(v);
         return v;
+    }
+
+    public Vertice busca(String nome){
+        for(int i=0;i<vertices.size();i++){
+            if( nome.equals(vertices.get(i).getNome()) ){
+                return vertices.get(i);
+            }
+        }
+        return null;
     }
 
     public Vertice busca(String nome, int valor_indice){
@@ -37,7 +46,7 @@ public class HiperGrafo{
     }
 
     public Vertice busca(String nome, int id, int estado, int valor_indice){
-        Vertice v = new Vertice(nome, id, estado, valor_indice);
+        Vertice v = new Vertice(nome, id, estado, valor_indice, false);
         for(int i=0;i<vertices.size();i++){
             if( v.equals(vertices.get(i)) ){
                 return vertices.get(i);
@@ -47,7 +56,7 @@ public class HiperGrafo{
     }
 
     public Vertice buscaUltimo(String nome, int id, int estado, int valor_indice){
-        Vertice v = new Vertice(nome, id, estado, valor_indice), ret = null;
+        Vertice v = new Vertice(nome, id, estado, valor_indice, false), ret = null;
         for(int i=0;i<vertices.size();i++){
             if( v.equals(vertices.get(i)) )
                 ret = vertices.get(i);

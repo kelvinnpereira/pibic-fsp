@@ -5,16 +5,18 @@ public class Vertice{
     private ArrayList<Aresta> arestas;
     private String nome;
     private int id, estado, valor_indice;
+    private boolean compartilhada;
 
     Vertice(){
     }
 
-    Vertice(String nome, int id, int estado, int valor_indice){
+    Vertice(String nome, int id, int estado, int valor_indice, boolean compartilhada){
         this.nome = nome;
         this.id = id;
         this.estado = estado;
         this.valor_indice = valor_indice;
         this.arestas = new ArrayList<Aresta>();
+        this.compartilhada = compartilhada;
     }
 
     public ArrayList<Aresta> getArestas(){
@@ -33,6 +35,14 @@ public class Vertice{
         this.nome = nome;
     }
 
+    public boolean getCompartilhada(){
+        return this.compartilhada;
+    }
+
+    public void setCompartilhada(boolean compartilhada){
+        this.compartilhada = compartilhada;
+    }
+
     public int getEstado(){
         return this.estado;
     }
@@ -47,7 +57,7 @@ public class Vertice{
     }
 
     public String toString(){
-        String str = nome+", id: "+id +", estado: "+estado+", valor_indice: "+valor_indice+" --> ";
+        String str = nome+", id: "+id +", estado: "+estado+", valor_indice: "+valor_indice+", shared:"+compartilhada+" --> ";
         for(int i=0;i<arestas.size();i++){
             str += arestas.get(i).toString();
         }

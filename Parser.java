@@ -233,11 +233,22 @@ public class Parser {
     	}
     }
 
+    public boolean buscaNome(String nome){
+        for(int i=0;i<grafoArray.size();i++){
+            Vertice v = grafoArray.get(i).busca(nome);
+            if(v != null){
+                v.setCompartilhada(true);
+                return true;
+            }
+        }
+        return false;
+    }
+
     public Acao acao_simples(String nome, Processo pa, String indice, int valor_indice){
     	Acao a = null;
     	if(exprBool(tiraIndice(bool, pa.getIndice(), pa.getEstado()+""))){
 	    	a = novaAcao(nome, indice, valor_indice, pa.getEstado(), pa);
-	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice());
+	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice(), buscaNome(nome));
 	        ArrayList<Acao> acoes_atuais = pa.getAcoesAtuais();
 	        if(acao_inicio){
 	        	a.setInicio(true);
@@ -297,7 +308,7 @@ public class Parser {
             int j = locais.lastIndexOf(pl);
             if(j == -1)
                 locais.add(pl);
-            vertice_atual = grafo.insereVertice(nome, 0, pa.getEstado(), valor_indice);
+            vertice_atual = grafo.insereVertice(nome, 0, pa.getEstado(), valor_indice, false);
             ArrayList<Acao> acoes_atuais = pa.getAcoesAtuais();
         	for(int i=0;i<acoes_atuais.size();i++){
                 grafo.insereAdjSimetrica(grafo.busca(acoes_atuais.get(i).getNome(), acoes_atuais.get(i).getId(), acoes_atuais.get(i).getEstado(), acoes_atuais.get(i).getValorIndice()), vertice_atual);
