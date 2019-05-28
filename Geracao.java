@@ -6,27 +6,32 @@ import java.util.ArrayList;
 
 public class Geracao{
 
-	private ArrayList<Acao> traceArray;
+	private ArrayList<Acao> traceArray, shared;
 	private ArrayList<ProcessThread> pthreadArray;
 	private BufferedWriter buff;
 	private File file;
 	private ArrayList<File> arquivos;
-	private String nomeArq;
+	private String nomeArq, composite_process_name;
 	private boolean stop, error;
 
 	Geracao(ArrayList<ProcessThread> pthreadArray){
 		this.pthreadArray = pthreadArray;
-		this.traceArray = new ArrayList<Acao>();
 		this.arquivos = new ArrayList<File>();
+		this.shared = new ArrayList<Acao>();
 		this.nomeArq = "";
+		this.composite_process_name = "MainMain";
 	}
 
-	public ArrayList<Acao> getTraceArray(){
-		return this.traceArray;
+	public ArrayList<ProcessThread> getPthreadArray(){
+		return this.pthreadArray;
 	}
 
-	public void setTraceArray(ArrayList<Acao> traceArray){
-		this.traceArray = traceArray;
+	public void setCPN(String nome){
+		this.composite_process_name = nome;
+	}
+
+	public String getCPN(){
+		return this.composite_process_name;
 	}
 
 	public void isShared(Acao acao){
@@ -52,12 +57,32 @@ public class Geracao{
 		return false;
 	}
 
+	public int conta(String nome){
+		int cont = 0;
+		for(int i=0;i<shared.size();i++){
+			if(shared.get(i).getNome().equals(nome)){
+				shared.set(i, null);
+				cont++;
+			}
+		}
+		return cont;
+	}
+
 	public void gerate(){
-		try{        
+		try{
+			File fileMain = new File(composite_process_name+".java");
+			arquivos.add(file);
+			BufferedWriter buffMain = new BufferedWriter(new FileWriter(fileMain));
+			buffMain.append(
+				/*metodo main que instancia a classe principal*/
+				"public class "+composite_process_name+"{\n\n"+
+				"    public static void main(String args[]){\n"
+			);
 			for(int cont=0;cont<pthreadArray.size();cont++){
 		        int i;
+
 		        Processo p, main = pthreadArray.get(cont).getProcessos().get(0);
-		        file = new File("Constantes"+main.getNome()+".java");
+		        /*file = new File("Constantes"+main.getNome()+".java");
 		        arquivos.add(file);
 		        buff = new BufferedWriter(new FileWriter(file));
 		        buff.append(
@@ -85,87 +110,103 @@ public class Geracao{
 		            );
 		        }
 		        buff.append("}");
-		        buff.close();
+		        buff.close();*/
 
 		        ArrayList<Processo> processos = pthreadArray.get(cont).getProcessos();
+
+				/*cria um arquivo .java com o nome do processo.*/
+				String nomeP = main.getNome()+(main.getEstado() == -1 ? "": "_"+main.getEstado());
+				file = new File(nomeP+".java");
+				arquivos.add(file);
+				buff = new BufferedWriter(new FileWriter(file));
+				buff.append(
+					/*o nome da classe e o proprio do processo.*/
+					"public class "+nomeP+" implements Runnable{\n\n"+
+					"    Thread thread"+main.getNome()+";\n\n"
+				);
+
+				int last_index_shared = shared.size();
+
+				for(i=0;i<processos.size();i++){
+					ArrayList<Acao> acoes = processos.get(i).getAcoes();
+					for(int j=0;j<acoes.size();j++){
+						if(acoes.get(j).getCompartilhada()){
+							buff.append(
+								"    Semaforo "+acoes.get(j).getNome()+"_shared;\n\n"
+							);
+							shared.add(acoes.get(j));
+							pthreadArray.get(cont).getShared().add(acoes.get(j));
+						}
+					}
+				}
+
+				buff.append(
+					/*contrutor da classe.*/
+					"    "+nomeP+"("
+				);
+				for(i=last_index_shared;i<shared.size();i++){
+					if(i == shared.size() -1)
+						buff.append("Semaforo "+shared.get(i).getNome()+"_shared){\n");
+					else
+						buff.append("Semaforo "+shared.get(i).getNome()+"_shared, ");
+				}
+				for(i=last_index_shared;i<shared.size();i++){
+					buff.append(
+						"        this."+shared.get(i).getNome()+"_shared = "+shared.get(i).getNome()+"_shared;\n"
+					);
+				}
+				buff.append(
+					/*instancia a thread*/
+					"        thread"+main.getNome()+" = new Thread(this);\n"+
+					/*inicia a execucao da thread*/
+					"        thread"+main.getNome()+".start();\n"+
+					"    }\n\n"
+				);
+				
+
 		        for(i=0;i<processos.size();i++){
-		            p = processos.get(i);
-		            /*cria um arquivo .java com o nome do processo.*/
-		            String nomeP = p.getNome()+(p.getEstado() == -1 ? "": "_"+p.getEstado());
-		            file = new File(nomeP+".java");
-		            arquivos.add(file);
-		            buff = new BufferedWriter(new FileWriter(file));
-		            buff.append(
-		                /*o nome da classe e o proprio do processo.*/
-		                "public class "+nomeP+"{\n\n"+
-		                /*contrutor da classe.*/
-		                "    "+nomeP+"(){\n"+
-		                "    }\n\n"
-		            );
 		            /*cada acao sera tranformada em um metodo da classe.*/
-		            ArrayList<Acao> acoes = p.getAcoes();
+		            ArrayList<Acao> acoes = processos.get(i).getAcoes();
 		            for(int j=0;j<acoes.size();j++){
 		            	if(!acoes.get(j).getNome().equals("STOP") && !acoes.get(j).getNome().equals("ERROR")){
 			                String nomeA = acoes.get(j).getNome()+(acoes.get(j).getValorIndice() == -1 ? "": "_"+acoes.get(j).getValorIndice());
 			                nomeA += acoes.get(j).getId() == -1 ? "": "_"+acoes.get(j).getId();
-			                buff.append(
-			                    "    public void "+nomeA+"(){\n"+
-			                    "        System.out.println(\""+acoes.get(j).getNome()+
-			                            (acoes.get(j).getValorIndice() != -1 ? "["+acoes.get(j).getValorIndice()+"]":"")+"\");\n"+
-			                    "    }\n\n"
-			                );
+							if(acoes.get(j).getCompartilhada()){
+								buff.append(
+									"    public synchronized void "+nomeA+"()throws InterruptedException{\n"+
+									"        "+acoes.get(j).getNome()+"_shared.dec();\n"+
+									"        System.out.println(\""+acoes.get(j).getNome()+
+											(acoes.get(j).getValorIndice() != -1 ? "["+acoes.get(j).getValorIndice()+"]":"")+"\");\n"+
+									"    }\n\n"
+								);
+							}else{
+								buff.append(
+									"    public void "+nomeA+"(){\n"+
+									"        System.out.println(\""+acoes.get(j).getNome()+
+											(acoes.get(j).getValorIndice() != -1 ? "["+acoes.get(j).getValorIndice()+"]":"")+"\");\n"+
+									"    }\n\n"
+								);
+							}
 			            }
 		            }
-		            buff.append("}");
-		            buff.close();
 		        }
-		        /*cria um arquivo .java com o nome Main+main.nome, que eh o nome do processo principal.*/
-		        nomeArq = "Main"+main.getNome()+".java";
-		        file = new File("Main"+main.getNome()+".java");
-		        arquivos.add(file);
-		        buff = new BufferedWriter(new FileWriter(file));
-		        /*nome da classe com o mesmo nome do arquivo.*/
+
 		        buff.append(
-		            "public class Main"+main.getNome()+" implements Runnable{\n\n"+
-		            /*thread com o nome thread+main.nome.*/
-		            "    Thread thread"+main.getNome()+";\n\n"
-		        );
-		        /*adiciona todos os objetos de cada classe(processo) como atributo da classe principal*/
-		        for(i=0;i<processos.size();i++){
-		            p = processos.get(i);
-		            String nomeP = p.getNome()+(p.getEstado() == -1 ? "": "_"+p.getEstado());
-		            buff.append("    "+nomeP+" obj_"+nomeP.toLowerCase()+";\n\n");
-		        }
-		        /*construtor da classe principal.*/
-		        buff.append("    Main"+main.getNome()+"(){\n");
-		        /*instancia cada atributo da classe principal.*/
-		        for(i=0;i<processos.size();i++){
-		            p = processos.get(i);
-		            String nomeP = p.getNome()+(p.getEstado() == -1 ? "": "_"+p.getEstado());
-		            buff.append(
-		                "        obj_"+nomeP.toLowerCase()+" = new "+nomeP+"();\n"
-		            );
-		        }
-		        buff.append(
-		            /*instancia a thread*/
-		            "        thread"+main.getNome()+" = new Thread(this);\n"+
-		            /*inicia a execucao da thread*/
-		            "        thread"+main.getNome()+".start();\n"+
-		            "    }\n\n"+
 		            /*execucao do programa com o metodo run*/
 		            "    public void run(){\n"+
 		            "        try{\n"+
 		            "            while(true){\n"+
 		            "                Thread.sleep(1000);\n"
 		        );
+				traceArray = pthreadArray.get(cont).getTraceArray();
 		        for(i=0;i<traceArray.size();i++){
 		        	if(!traceArray.get(i).getNome().equals("STOP") && !traceArray.get(i).getNome().equals("ERROR")){
-			            String nomeP = traceArray.get(i).getProcesso().getNome().toLowerCase();
+			            nomeP = traceArray.get(i).getProcesso().getNome().toLowerCase();
 			            nomeP += (traceArray.get(i).getProcesso().getEstado() == -1 ? "" : "_"+traceArray.get(i).getProcesso().getEstado());
 			            String nomeA = traceArray.get(i).getNome()+(traceArray.get(i).getValorIndice() == -1 ? "" : "_"+traceArray.get(i).getValorIndice());
 			            nomeA += traceArray.get(i).getId() == -1 ? "": "_"+traceArray.get(i).getId();
 			            buff.append(
-			                "                obj_"+nomeP+"."+nomeA+"();\n"+
+			                "                "+nomeA+"();\n"+
 			                "                Thread.sleep(1000);\n"
 			            );
 			        }else if(traceArray.get(i).getNome().equals("STOP")){
@@ -178,7 +219,7 @@ public class Geracao{
 		            }
 		        }
 		        if(stop){
-		        	String nomeP = main.getNome()+(main.getEstado() == -1 ? "": "_"+main.getEstado());
+		        	nomeP = main.getNome()+(main.getEstado() == -1 ? "": "_"+main.getEstado());
 		            buff.append(
 		                "                System.out.println(\"STOP\");\n"+
 		                "                thread"+nomeP+".interrupt();\n"
@@ -188,14 +229,36 @@ public class Geracao{
 		            "            }\n"+
 		            "        }catch(Exception e){}\n"+
 		            "    }\n\n"+
-		            /*metodo main que instancia a classe principal*/
-		            "    public static void main(String args[]){\n"+
-		            "        Main"+main.getNome()+" main = new Main"+main.getNome()+"();\n"+
-		            "    }\n\n"+
 		            "}"
 		        );
 		        buff.close();
 		    }
+			for(int i=0;i<shared.size();i++){
+				if(shared.get(i) != null){
+					String nome = shared.get(i).getNome();
+					buffMain.append("        Semaforo "+nome+"_shared = new Semaforo("+conta(nome)+");\n");
+				}
+			}
+			for(int i=0;i<pthreadArray.size();i++){
+				Processo p = pthreadArray.get(i).getProcessos().get(0);
+				String nome = p.getNome();
+				buffMain.append(
+					"        "+nome+" obj_"+nome.toLowerCase()+" = new "+nome+"("
+				);
+				for(int j=0;j<pthreadArray.get(i).getShared().size();j++){
+					String nomeA = pthreadArray.get(i).getShared().get(j).getNome();
+					if(j == pthreadArray.get(i).getShared().size()-1)
+						buffMain.append(nomeA+"_shared");
+					else
+						buffMain.append(nomeA+"_shared, ");
+				}
+				buffMain.append(");\n");
+			}
+			buffMain.append(
+				"    }\n\n"+
+				"}"
+			);
+			buffMain.close();
 	    }catch(Exception e){
 	        System.out.println("Execessao: "+e.toString());
 	    }

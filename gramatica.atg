@@ -14,7 +14,7 @@ COMPILER FSP $F
     public Processo processo_atual, primeiro_atual;
     public Acao acao_atual;
     public int sup, inf, valor_expr;
-    public String index, expressao = "", bool = "";
+    public String index, expressao = "", bool = "", composite_process_name = "";
     public ArrayList<HiperGrafo> grafoArray = new ArrayList<HiperGrafo>();
     public HiperGrafo grafo;
     public boolean acao_inicio, conjunto;
@@ -691,7 +691,13 @@ choice = ["when("boolean_expr")"]
 
 condition = "if" boolean_expr "then" process_body "else" process_body. 
 
-composite_process = "||"uppercase_id ["("parameter_list")"] "=" composite_body[label_visibility][relabels]".".
+composite_process = "||"
+
+(.
+    generator.setCPN(la.val);
+.)
+
+uppercase_id ["("parameter_list")"] "=" composite_body[label_visibility][relabels]".".
 
 composite_body = process_instance | parallel_list | composite_conditional | compositi_replicator .
 

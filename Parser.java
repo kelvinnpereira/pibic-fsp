@@ -33,7 +33,7 @@ public class Parser {
     public Processo processo_atual, primeiro_atual;
     public Acao acao_atual;
     public int sup, inf, valor_expr;
-    public String index, expressao = "", bool = "";
+    public String index, expressao = "", bool = "", composite_process_name = "";
     public ArrayList<HiperGrafo> grafoArray = new ArrayList<HiperGrafo>();
     public HiperGrafo grafo;
     public boolean acao_inicio, conjunto;
@@ -510,6 +510,8 @@ public class Parser {
 
 	void composite_process() {
 		Expect(16);
+		generator.setCPN(la.val);
+		
 		Expect(2);
 		if (la.kind == 8) {
 			Get();

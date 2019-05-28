@@ -20,8 +20,8 @@ public class InterfaceGrafica{
     ListenerView listener_view;
     ArrayList<HiperGrafo> grafoArray;
     Processo primeiro;
-    ArrayList<Acao> traceArray;
     Geracao generator;
+    String last = "";
 
     InterfaceGrafica(ArrayList<HiperGrafo> grafoArray, Geracao generator){
         frame = new JFrame("Animator");
@@ -38,7 +38,6 @@ public class InterfaceGrafica{
         pop_up = new JOptionPane();
         this.generator = generator;
         this.grafoArray = grafoArray;
-        this.traceArray = generator.getTraceArray();
     }
 
     public void start_interface(){
@@ -86,6 +85,20 @@ public class InterfaceGrafica{
         
     }
 
+    private void disableAll(){
+        for(int i=0;i<boxes.size();i++){
+            boxes.get(i).getBox().setEnabled(false);
+            boxes.get(i).getBox().setSelected(false);
+        }
+    } 
+
+    private int indexGrafo(HiperGrafo grafo){
+        for(int i=0;i<grafoArray.size();i++){
+            if(grafoArray.get(i) == grafo) return i;
+        }
+        return -1;
+    }
+
     private class ListenerBox implements ActionListener{
     	public void actionPerformed(ActionEvent e){
             AcaoCheckBox box = null;
@@ -101,12 +114,20 @@ public class InterfaceGrafica{
     		for(int i=0;i<boxes.size();i++){
     			if(e.getSource() == boxes.get(i).getBox()){
 	        		text_area.setText(text_area.getText()+""+boxes.get(i).getBox().getText()+"\n");
-                    traceArray.add(boxes.get(i).getAcao());
-                    atualizaInterface(boxes.get(i));
+                    last = boxes.get(i).getBox().getText();
+                    generator.getPthreadArray().get(indexGrafo(boxes.get(i).getGrafo())).getTraceArray().add(boxes.get(i).getAcao());
+                    if(atualizaInterface(boxes.get(i))){
+                        disableAll();
+                        break;
+                    }
                 }else if(box.getAcao().getCompartilhada() && boxes.get(i).getAcao().getNome().equals(box.getAcao().getNome())){
-                    atualizaInterface(boxes.get(i));
                     boxes.get(i).getBox().setEnabled(false);
                     boxes.get(i).getBox().setSelected(false);
+                    generator.getPthreadArray().get(indexGrafo(boxes.get(i).getGrafo())).getTraceArray().add(boxes.get(i).getAcao());
+                    if(atualizaInterface(boxes.get(i))){
+                        disableAll();
+                        break;
+                    }
                 }
     		}
 	    }
@@ -114,10 +135,10 @@ public class InterfaceGrafica{
 
     private class ListenerGenerate implements ActionListener{
     	public void actionPerformed(ActionEvent e){
-            /*generator.gerate();
+            generator.gerate();
             pop_up.showMessageDialog(frame, "Generated Code Successful");
             generate.setEnabled(false);
-            if(!traceArray.get(traceArray.size()-1).getNome().equals("ERROR")) view.setEnabled(true);*/
+            if( last.equals("ERROR") ) view.setEnabled(true);
 	    }
 	}
 
@@ -153,7 +174,7 @@ public class InterfaceGrafica{
         return true;
     }
 
-    private void atualizaInterface(AcaoCheckBox box){
+    private boolean atualizaInterface(AcaoCheckBox box){
         HiperGrafo grafo;
         Acao a = box.getAcao();
         for(int cont=0;cont<grafoArray.size();cont++){
@@ -161,9 +182,10 @@ public class InterfaceGrafica{
                 grafo = grafoArray.get(cont);
                 Vertice v = grafo.busca(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice()), stop_error = v.only();
                 if(stop_error != null){
-                    traceArray.add(new Acao(stop_error.getNome(), null));
+                    generator.getPthreadArray().get(indexGrafo(box.getGrafo())).getTraceArray().add(new Acao(stop_error.getNome(), null));
                     text_area.setText(text_area.getText()+""+stop_error.getNome()+"\n");
-                    return;
+                    last = stop_error.getNome();
+                    return true;
                 }
                 for(int i=0;i<boxes.size();i++){
                     ArrayList<Aresta> arestas = v.getArestas();
@@ -184,5 +206,6 @@ public class InterfaceGrafica{
                 }
             }
         }
+        return false;
     }
 }
