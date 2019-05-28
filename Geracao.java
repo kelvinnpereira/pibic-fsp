@@ -29,6 +29,21 @@ public class Geracao{
 		this.traceArray = traceArray;
 	}
 
+	public void isShared(Acao acao){
+		for(int i=0;i<pthreadArray.size();i++){
+			ArrayList<Processo> processos = pthreadArray.get(i).getProcessos();
+			for(int j=0;j<processos.size();j++){
+				ArrayList<Acao> acoes = processos.get(j).getAcoes();
+				for(int k=0;k<acoes.size();k++){
+					if(acao.getNome().equals(acoes.get(k).getNome())){
+						acao.setCompartilhada(true);
+						acoes.get(k).setCompartilhada(true);
+					}
+				}
+			}
+		}
+	}
+
 	public boolean isPrimeiro(Processo p){
 		Processo processos;
 		for(int i=0;i<pthreadArray.size();i++){

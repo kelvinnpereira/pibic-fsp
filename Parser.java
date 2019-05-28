@@ -67,9 +67,9 @@ public class Parser {
     }
 
     public void startInterface(){
-    	for(int i=0;i<grafoArray.size();i++){
+    	/*for(int i=0;i<grafoArray.size();i++){
     		System.out.println(grafoArray.get(i));
-    	}
+    	}*/
     	ig.start_interface();
     }
 
@@ -109,6 +109,7 @@ public class Parser {
     public Acao novaAcao(String nome, String indice, int valor_indice, int estado, Processo pa){
         if(pa == null) return null;
         Acao a = new Acao(nome, pa, indice, valor_indice, estado);
+        generator.isShared(a);
         int i = pa.getAcoes().lastIndexOf(a), num = 0;
         if(i != -1)
             a.setId(pa.getAcoes().get(i).getId() + 1);

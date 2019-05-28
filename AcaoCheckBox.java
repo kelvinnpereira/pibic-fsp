@@ -7,6 +7,7 @@ public class AcaoCheckBox{
     private Acao acao;
     private JCheckBox box;
     private HiperGrafo grafo;
+    private boolean compartilhada;
 
     AcaoCheckBox(){
     }
@@ -15,6 +16,7 @@ public class AcaoCheckBox{
         this.acao = acao;
         this.box = box;
         this.grafo = grafo;
+        this.compartilhada = false;
     }
 
     public Acao getAcao(){
@@ -27,6 +29,14 @@ public class AcaoCheckBox{
 
     public HiperGrafo getGrafo(){
         return this.grafo;
+    }
+
+    public boolean getCompartilhada(){
+        return this.compartilhada;
+    }
+
+    public void setCompartilhada(boolean val){
+        this.compartilhada = val;
     }
 
 }

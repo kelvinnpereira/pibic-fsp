@@ -35,7 +35,7 @@ public class Aresta{
     public String toString(){
         String str = "";
         for(int i=0;i<vertices.size();i++){
-            str += vertices.get(i).getNome() + ", id: " + vertices.get(i).getId()  +", estado: "+vertices.get(i).getEstado() +", valor_indice: "+vertices.get(i).getValorIndice()+"share:"+vertices.get(i).getCompartilhada()+" | ";
+            str += vertices.get(i).getNome() + ", id: " + vertices.get(i).getId()  +", estado: "+vertices.get(i).getEstado() +", valor_indice: "+vertices.get(i).getValorIndice()+", share:"+vertices.get(i).getCompartilhada()+" | ";
         }
         return str;
     }

@@ -6,7 +6,7 @@ public class Acao{
     private ArrayList<Acao> acoes_atuais;
     private Processo processo;
     private ProcessoLocal pl;
-    private boolean inicio;
+    private boolean inicio, compartilhada;
     private int id, estado, valor_indice;
 
     Acao(String nome, Processo processo){
@@ -88,12 +88,20 @@ public class Acao{
         return this.indice;
     }
 
+    public boolean getCompartilhada(){
+        return this.compartilhada;
+    }
+
+    public void setCompartilhada(boolean val){
+        this.compartilhada = val;
+    }
+
     public boolean equals(Object o){
         Acao a = (Acao)o;
         return nome.equals(a.nome) && processo.equals(a.processo);
     }
 
     public String toString(){
-        return nome + "["+valor_indice+"], id:  "+id+", estado: "+estado+", "+processo.toString();
+        return nome + "["+valor_indice+"], id:  "+id+", estado: "+estado+", "+processo.toString()+", shared: "+compartilhada;
     }
 }

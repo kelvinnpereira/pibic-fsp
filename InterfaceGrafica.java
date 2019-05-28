@@ -59,11 +59,16 @@ public class InterfaceGrafica{
         view.addActionListener(listener_view);
     	
     	for(int i=0;i<boxes.size();i++){
-            if(boxes.get(i).getAcao().getInicio() && generator.isPrimeiro(boxes.get(i).getAcao().getProcesso()) ){
-        		boxes.get(i).getBox().setEnabled(true);
-            }else{
-                boxes.get(i).getBox().setEnabled(false);
-        		boxes.get(i).getBox().setSelected(false);
+            boxes.get(i).getBox().setEnabled(false);
+            boxes.get(i).getBox().setSelected(false);
+            if(boxes.get(i).getAcao().getInicio() && generator.isPrimeiro(boxes.get(i).getAcao().getProcesso())) {
+                if(boxes.get(i).getAcao().getCompartilhada()){
+                    boxes.get(i).setCompartilhada(true);
+        		    if(allAcao(boxes.get(i).getAcao().getNome()))
+                        boxes.get(i).getBox().setEnabled(true);
+                }else{
+                    boxes.get(i).getBox().setEnabled(true);
+                }
             }
     		boxes.get(i).getBox().addActionListener(listener_box);
     		panel.add(boxes.get(i).getBox());
@@ -98,6 +103,10 @@ public class InterfaceGrafica{
 	        		text_area.setText(text_area.getText()+""+boxes.get(i).getBox().getText()+"\n");
                     traceArray.add(boxes.get(i).getAcao());
                     atualizaInterface(boxes.get(i));
+                }else if(box.getAcao().getCompartilhada() && boxes.get(i).getAcao().getNome().equals(box.getAcao().getNome())){
+                    atualizaInterface(boxes.get(i));
+                    boxes.get(i).getBox().setEnabled(false);
+                    boxes.get(i).getBox().setSelected(false);
                 }
     		}
 	    }
@@ -131,6 +140,19 @@ public class InterfaceGrafica{
         return this.boxes;
     }
 
+    public boolean allAcao(String nome){
+        for(int i=0;i<boxes.size();i++){
+            if(boxes.get(i).getAcao().getNome().equals(nome) && !boxes.get(i).getCompartilhada()) return false;
+        }
+        for(int i=0;i<boxes.size();i++){
+            if(boxes.get(i).getAcao().getNome().equals(nome)){
+                boxes.get(i).setCompartilhada(false);
+                boxes.get(i).getBox().setEnabled(true);
+            }
+        }
+        return true;
+    }
+
     private void atualizaInterface(AcaoCheckBox box){
         HiperGrafo grafo;
         Acao a = box.getAcao();
@@ -149,8 +171,13 @@ public class InterfaceGrafica{
                         ArrayList<Vertice> vertices = arestas.get(j).getVertices();
                         for(int k=0;k<vertices.size();k++){
                             a = boxes.get(i).getAcao();                    
-                            if(a.getNome().equals(vertices.get(k).getNome()) && a.getId() == vertices.get(k).getId() && a.getEstado() == vertices.get(k).getEstado() && a.getValorIndice() == vertices.get(k).getValorIndice()){
-                                boxes.get(i).getBox().setEnabled(true);
+                            if(boxes.get(i).getGrafo() == grafo && a.getNome().equals(vertices.get(k).getNome()) && a.getId() == vertices.get(k).getId() && a.getEstado() == vertices.get(k).getEstado() && a.getValorIndice() == vertices.get(k).getValorIndice()){
+                                if(vertices.get(k).getCompartilhada()){
+                                    boxes.get(i).setCompartilhada(true);
+                                    if(allAcao(boxes.get(i).getAcao().getNome())) boxes.get(i).getBox().setEnabled(true);
+                                }else{
+                                    boxes.get(i).getBox().setEnabled(true);
+                                }
                             }
                         }
                     }
@@ -158,5 +185,4 @@ public class InterfaceGrafica{
             }
         }
     }
-
 }
