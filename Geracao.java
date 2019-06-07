@@ -60,7 +60,7 @@ public class Geracao{
 	public int conta(String nome){
 		int cont = 0;
 		for(int i=0;i<shared.size();i++){
-			if(shared.get(i).getNome().equals(nome)){
+			if(shared.get(i) != null && shared.get(i).getNome().equals(nome)){
 				shared.set(i, null);
 				cont++;
 			}
@@ -130,7 +130,7 @@ public class Geracao{
 				for(i=0;i<processos.size();i++){
 					ArrayList<Acao> acoes = processos.get(i).getAcoes();
 					for(int j=0;j<acoes.size();j++){
-						if(acoes.get(j).getCompartilhada()){
+						if(acoes.get(j).getCompartilhada() && !acoes.get(j).getNome().equals("STOP") && !acoes.get(j).getNome().equals("ERROR")){
 							buff.append(
 								"    Semaforo "+acoes.get(j).getNome()+"_shared;\n\n"
 							);
@@ -146,10 +146,11 @@ public class Geracao{
 				);
 				for(i=last_index_shared;i<shared.size();i++){
 					if(i == shared.size() -1)
-						buff.append("Semaforo "+shared.get(i).getNome()+"_shared){\n");
+						buff.append("Semaforo "+shared.get(i).getNome()+"_shared");
 					else
 						buff.append("Semaforo "+shared.get(i).getNome()+"_shared, ");
 				}
+				buff.append("){\n");
 				for(i=last_index_shared;i<shared.size();i++){
 					buff.append(
 						"        this."+shared.get(i).getNome()+"_shared = "+shared.get(i).getNome()+"_shared;\n"
