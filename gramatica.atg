@@ -23,7 +23,7 @@ COMPILER FSP $F
     private ScriptEngine eng = manager.getEngineByName("JavaScript");
     private ArrayList<ProcessThread> pthreadArray = new ArrayList<ProcessThread>();
     private Geracao generator = new Geracao(pthreadArray);
-    private InterfaceGrafica ig = new InterfaceGrafica(grafoArray, generator);
+    private InterfaceGrafica ig;
 
     public void init(){
         processos = new ArrayList<Processo>();
@@ -38,6 +38,12 @@ COMPILER FSP $F
         grafoArray.add(grafo);
         acao_inicio = conjunto = false;
         vertice_atual = null;
+        System.out.println("init");
+    }
+
+    public void setIg(InterfaceGrafica ig){
+        System.out.println("set");
+        this.ig = ig;
     }
 
     public void newThread(){
@@ -48,10 +54,9 @@ COMPILER FSP $F
     }
 
     public void startInterface(){
-    	/*for(int i=0;i<grafoArray.size();i++){
-    		System.out.println(grafoArray.get(i));
-    	}*/
-    	ig.start_interface();
+        ig.setGrafoArray(grafoArray);
+        ig.setGenerator(generator);
+        ig.start_interface();
     }
 
     public void p(String str){
@@ -141,44 +146,6 @@ COMPILER FSP $F
             i++;
         }
     }
-
-    /*public boolean andaTrace(Vertice v, int t){
-        ArrayList<Aresta> arestas = v.getArestas();
-        if(arestas.size() == 1 && v.buscaNome("STOP") != null) {
-            stop = true;
-            return true;
-        }
-        if(arestas.size() == 1 && v.buscaNome("ERROR") != null) {
-            error = true;
-            return true;
-        }
-        if(traceArray.size() == t+1) return true;
-        for(int i=0;i<arestas.size();i++){
-            ArrayList<Vertice> vadj = arestas.get(i).getVertices();
-            for(int j=0;j<vadj.size();j++){
-                if(traceArray.size() > t+1 && traceArray.get(t+1).getNome().equals(vadj.get(j).getNome()) && traceArray.get(t+1).getValorIndice() == vadj.get(j).getValorIndice() && andaTrace(vadj.get(j), t+1)) return true;
-            }
-        }
-        return false;
-    }*/
-
-    /*public void verificaTrace() throws Error{
-        if(traceArray.size() == 0) return;
-        Acao acao = null;
-        ArrayList<Acao> acoes = primeiro.getAcoes();
-        for(int i=0;i<acoes.size()&&acao==null;i++){
-            if( acoes.get(i).getInicio() && acoes.get(i).getNome().equals(traceArray.get(0).getNome()) && acoes.get(i).getValorIndice() == traceArray.get(0).getValorIndice())
-                acao = acoes.get(i);      
-        }
-        if(acao == null){
-            throw new Error("Trace invalido!!");
-        }
-        ArrayList<Vertice> vertices = grafo.getVertices();
-        for(int i=0;i<vertices.size();i++){
-            if(vertices.get(i).getNome().equals(acao.getNome()) && vertices.get(i).getValorIndice() == acao.getValorIndice() && andaTrace(vertices.get(i), 0)) return;
-        }
-        if(true)throw new Error("Trace invalido!!");
-    }*/
 
     public String tiraIndice(String expr, String indice, String valor){
         if(expr.equals("") || indice.equals("") || valor.equals("")) return expr;

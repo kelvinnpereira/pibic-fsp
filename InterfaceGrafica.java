@@ -3,28 +3,86 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 import java.io.File;
+import java.io.InputStream;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.Charset;
 
 public class InterfaceGrafica{
 
 	public static final int N = 30;
 
 	JFrame frame;
-	JPanel panel;
-    JButton generate, view;
+	JPanel panel, tab1, tab2;
+    JButton generate, view, compile;
     ArrayList<AcaoCheckBox> boxes;
-    JTextArea text_area;
-    JScrollPane scroll_text_area, scroll_panel;
+    JTextArea text_area, editor_area;
+    JScrollPane scroll_text_area, scroll_panel, scroll_editor_area;
     JOptionPane pop_up;
+    JTabbedPane tabbedPane;
     ListenerBox listener_box;
     ListenerGenerate listener_generate;
     ListenerView listener_view;
+    ListenerCompile listener_compile;
     ArrayList<HiperGrafo> grafoArray;
     Processo primeiro;
     Geracao generator;
     String last = "";
 
-    InterfaceGrafica(ArrayList<HiperGrafo> grafoArray, Geracao generator){
+    public void reset(){
+        this.boxes = new ArrayList<AcaoCheckBox>();
+    }
+
+    InterfaceGrafica(){
         frame = new JFrame("Animator");
+        tabbedPane = new JTabbedPane();
+        
+        tab1 = new JPanel();
+        tab2 = new JPanel();
+        
+        listener_compile = new ListenerCompile();
+        
+        editor_area = new JTextArea("A = (a->A).");
+        scroll_editor_area = new JScrollPane(editor_area);
+        
+        compile = new JButton("Compile");
+    	boxes = new ArrayList<AcaoCheckBox>();
+        pop_up = new JOptionPane();
+
+        frame.setSize(320, 400);
+        frame.setLayout(null);
+
+        tab1.setLayout(null);
+        tab2.setLayout(null);
+
+        tabbedPane.setBounds(0, 0, 320, 380);
+
+        scroll_editor_area.setBounds(5, 5, 307, 300);
+        compile.setBounds(100, 310, 110, 30);
+        compile.addActionListener(listener_compile);
+
+        tab1.add(scroll_editor_area);
+        tab1.add(compile);
+
+        tabbedPane.add("Editor", tab1);
+        tabbedPane.add("Generator", tab2);
+
+        frame.add(tabbedPane);
+
+    	frame.setLocationRelativeTo(null);
+    	frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setResizable(false);
+    	frame.setVisible(true);
+    }
+
+    public void setGrafoArray(ArrayList<HiperGrafo> grafoArray){
+        this.grafoArray = grafoArray;
+    }
+
+    public void setGenerator(Geracao generator){
+        this.generator = generator;
+    }
+
+    public void start_interface(){
         panel = new JPanel();
         scroll_panel = new JScrollPane(panel);
         listener_box = new ListenerBox();
@@ -34,16 +92,7 @@ public class InterfaceGrafica{
         scroll_text_area = new JScrollPane(text_area);
         generate = new JButton("Generate");
         view = new JButton("View Code");
-    	boxes = new ArrayList<AcaoCheckBox>();
-        pop_up = new JOptionPane();
-        this.generator = generator;
-        this.grafoArray = grafoArray;
-    }
-
-    public void start_interface(){
-    	frame.setSize(320, 380);
-        frame.setLayout(null);
-
+        //tb2
     	panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
     	scroll_panel.setBounds(160, 40, 155, 265);
     	
@@ -73,16 +122,10 @@ public class InterfaceGrafica{
     		panel.add(boxes.get(i).getBox());
     	}
 
-    	frame.add(scroll_text_area);
-    	frame.add(generate);
-        frame.add(view);
-    	frame.add(scroll_panel);
-
-    	frame.setLocationRelativeTo(null);
-    	frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setResizable(false);
-    	frame.setVisible(true);
-        
+    	tab2.add(scroll_text_area);
+    	tab2.add(generate);
+        tab2.add(view);
+    	tab2.add(scroll_panel);
     }
 
     private void disableAll(){
@@ -148,6 +191,24 @@ public class InterfaceGrafica{
                 java.awt.Desktop.getDesktop().open(new File(generator.getNomeArq())); 
             }catch(Exception e1){
                 System.out.println(e1);
+            }
+        }
+    }
+
+    private class ListenerCompile implements ActionListener{
+        public void actionPerformed(ActionEvent e){
+            try{
+                InterfaceGrafica.this.reset();
+                tab2.removeAll();
+                String string = editor_area.getText();
+				InputStream inputStream = new ByteArrayInputStream(string.getBytes(Charset.forName("UTF-8")));
+				Scanner scanner = new Scanner(inputStream);
+				Parser parser = new Parser(scanner);
+                parser.setIg(InterfaceGrafica.this);
+				parser.Parse();
+            }catch(Exception e1){
+                System.out.println();
+                e1.printStackTrace();
             }
         }
     }
