@@ -57,11 +57,9 @@ public class Parser {
         grafoArray.add(grafo);
         acao_inicio = conjunto = false;
         vertice_atual = null;
-        System.out.println("init");
     }
 
     public void setIg(InterfaceGrafica ig){
-        System.out.println("set");
         this.ig = ig;
     }
 

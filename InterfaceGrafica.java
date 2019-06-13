@@ -26,7 +26,7 @@ public class InterfaceGrafica{
     ArrayList<HiperGrafo> grafoArray;
     Processo primeiro;
     Geracao generator;
-    String last = "";
+    String last = "", dir = "";
 
     public void reset(){
         this.boxes = new ArrayList<AcaoCheckBox>();
@@ -178,17 +178,27 @@ public class InterfaceGrafica{
 
     private class ListenerGenerate implements ActionListener{
     	public void actionPerformed(ActionEvent e){
-            generator.gerate();
-            pop_up.showMessageDialog(frame, "Generated Code Successful");
-            generate.setEnabled(false);
-            if( last.equals("ERROR") ) view.setEnabled(true);
+            JFileChooser chooser = new JFileChooser(); 
+            chooser.setCurrentDirectory(new File("."));
+            chooser.setDialogTitle("Select the directory where to save");
+            chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            chooser.setAcceptAllFileFilterUsed(false);
+            if(chooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION){ 
+                InterfaceGrafica.this.dir = chooser.getSelectedFile().getPath();
+                generator.gerate(dir);
+                pop_up.showMessageDialog(frame, "Generated Code Successful");
+                generate.setEnabled(false);
+                if( !last.equals("ERROR") ) view.setEnabled(true);
+            }else{
+                pop_up.showMessageDialog(frame, "No Selection");
+            }
 	    }
 	}
 
     private class ListenerView implements ActionListener{
         public void actionPerformed(ActionEvent e){
             try{
-                java.awt.Desktop.getDesktop().open(new File(generator.getNomeArq())); 
+                java.awt.Desktop.getDesktop().open(new File(dir+"/"+generator.getNomeArq())); 
             }catch(Exception e1){
                 System.out.println(e1);
             }

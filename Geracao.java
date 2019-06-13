@@ -19,7 +19,7 @@ public class Geracao{
 		this.arquivos = new ArrayList<File>();
 		this.shared = new ArrayList<Acao>();
 		this.nomeArq = "";
-		this.composite_process_name = "MainMain";
+		this.composite_process_name = "Main";
 	}
 
 	public ArrayList<ProcessThread> getPthreadArray(){
@@ -68,9 +68,10 @@ public class Geracao{
 		return cont;
 	}
 
-	public void gerate(){
+	public void gerate(String dir){
 		try{
-			File fileMain = new File(composite_process_name+".java");
+			System.out.println("dir: "+dir);
+			File fileMain = new File(dir+"/"+composite_process_name+".java");
 			arquivos.add(file);
 			BufferedWriter buffMain = new BufferedWriter(new FileWriter(fileMain));
 			buffMain.append(
@@ -116,7 +117,7 @@ public class Geracao{
 
 				/*cria um arquivo .java com o nome do processo.*/
 				String nomeP = main.getNome()+(main.getEstado() == -1 ? "": "_"+main.getEstado());
-				file = new File(nomeP+".java");
+				file = new File(dir+"/"+nomeP+".java");
 				arquivos.add(file);
 				buff = new BufferedWriter(new FileWriter(file));
 				buff.append(
