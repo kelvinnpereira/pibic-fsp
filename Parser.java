@@ -42,7 +42,7 @@ public class Parser {
     private ScriptEngine eng = manager.getEngineByName("JavaScript");
     private ArrayList<ProcessThread> pthreadArray = new ArrayList<ProcessThread>();
     private Geracao generator = new Geracao(pthreadArray);
-    private InterfaceGrafica ig;
+    private Trace trace;
 
     public void init(){
         processos = new ArrayList<Processo>();
@@ -59,8 +59,8 @@ public class Parser {
         vertice_atual = null;
     }
 
-    public void setIg(InterfaceGrafica ig){
-        this.ig = ig;
+    public void setTrace(Trace trace){
+        this.trace = trace;
     }
 
     public void newThread(){
@@ -71,9 +71,9 @@ public class Parser {
     }
 
     public void startInterface(){
-        ig.setGrafoArray(grafoArray);
-        ig.setGenerator(generator);
-        ig.start_interface();
+        trace.setGrafoArray(grafoArray);
+        trace.setGenerator(generator);
+        trace.start_trace();
     }
 
     public void p(String str){
@@ -117,7 +117,7 @@ public class Parser {
         if(i != -1)
             a.setId(pa.getAcoes().get(i).getId() + 1);
         pa.getAcoes().add(a);
-        ig.addCheckBox(a, grafo);
+        trace.addCheckBox(a, grafo);
         return a;
     }
 
