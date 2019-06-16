@@ -5,6 +5,7 @@ import java.io.File;
 import java.util.ArrayList;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptEngine;
+import javax.swing.*;
 
 
 
@@ -295,6 +296,37 @@ public class Parser {
             }
             pa++;
     	}
+    }
+
+    public void rename(String newName, String oldName){
+        boolean sharv = buscaNome(newName), sharb = false;
+        for(int i=0;i<trace.getBoxes().size();i++){
+            AcaoCheckBox box = trace.getBoxes().get(i);
+            System.out.println(i+": "+box.getAcao());
+            if(box.getAcao().getNome().equals(newName)){
+                box.getAcao().setCompartilhada(true);
+                sharb = true;
+                System.out.println("shared acao: "+box.getAcao());
+            }
+        }
+        for(int i=0;i<grafoArray.size();i++){
+            Vertice v = grafoArray.get(i).busca(oldName);
+            if(v != null){
+                v.setNome(newName);
+                v.setCompartilhada(sharv);
+                System.out.println("shared ver: "+v);
+            }
+        }
+        for(int i=0;i<trace.getBoxes().size();i++){
+            AcaoCheckBox box = trace.getBoxes().get(i);
+            System.out.println(i+": "+box.getAcao());
+            if(box.getAcao().getNome().equals(oldName)){
+                box.getAcao().setName(newName);
+                box.getBox().setText(newName);
+                box.getAcao().setCompartilhada(sharb);
+                System.out.println("shared acao2: "+box.getAcao());
+            }
+        }
     }
 
 
@@ -646,7 +678,7 @@ public class Parser {
 		if(primeiro_atual == null)
 		primeiro_atual = processo_atual;
 		Processo p = processo_atual;
-		  if( processo_atual.getEstado() == -1 ){
+		  if(processo_atual != null && processo_atual.getEstado() == -1 ){
 		  	if(inf != -1 && sup != -1){
 		  		if(processo_atual.getAcoesAtuais().size() > 1)
 		  			acao_range_index(nome, processo_atual);
@@ -659,7 +691,7 @@ public class Parser {
 		        processo_atual.getAcoesAtuais().add(a);
 		    }
 		  	}
-		  }else{
+		  }else if(processo_atual != null){
 		  	acao_index(nome, processos.indexOf(processo_atual));
 		  }
 		  expressao = "";
@@ -744,9 +776,15 @@ public class Parser {
 	}
 
 	void simple_relabel() {
+		String newName = la.val;
+		
 		action();
 		Expect(7);
+		String oldName = la.val;
+		
 		action();
+		rename(newName, oldName);
+		
 	}
 
 	void parameter_list() {

@@ -74,9 +74,9 @@ public class Geracao{
 
 	public void gerate(){
 		try{
-			File dir = new File(composite_process_name);
+			File dir = new File("Generated");
 			dir.mkdir();
-			File fileMain = new File(composite_process_name+".java");
+			File fileMain = new File("Generated/"+composite_process_name+".java");
 			arquivos.add(fileMain);
 			BufferedWriter buffMain = new BufferedWriter(new FileWriter(fileMain));
 			buffMain.append(
@@ -122,7 +122,7 @@ public class Geracao{
 
 				/*cria um arquivo .java com o nome do processo.*/
 				String nomeP = main.getNome()+(main.getEstado() == -1 ? "": "_"+main.getEstado());
-				file = new File(nomeP+".java");
+				file = new File("Generated/"+nomeP+".java");
 				arquivos.add(file);
 				buff = new BufferedWriter(new FileWriter(file));
 				buff.append(
@@ -138,7 +138,7 @@ public class Geracao{
 					for(int j=0;j<acoes.size();j++){
 						if(acoes.get(j).getCompartilhada() && !acoes.get(j).getNome().equals("STOP") && !acoes.get(j).getNome().equals("ERROR")){
 							buff.append(
-								"    Semaforo "+acoes.get(j).getNome()+"_shared;\n\n"
+								"    Monitor "+acoes.get(j).getNome()+"_shared;\n\n"
 							);
 							shared.add(acoes.get(j));
 							pthreadArray.get(cont).getShared().add(acoes.get(j));
@@ -152,9 +152,9 @@ public class Geracao{
 				);
 				for(i=last_index_shared;i<shared.size();i++){
 					if(i == shared.size() -1)
-						buff.append("Semaforo "+shared.get(i).getNome()+"_shared");
+						buff.append("Monitor "+shared.get(i).getNome()+"_shared");
 					else
-						buff.append("Semaforo "+shared.get(i).getNome()+"_shared, ");
+						buff.append("Monitor "+shared.get(i).getNome()+"_shared, ");
 				}
 				buff.append("){\n");
 				for(i=last_index_shared;i<shared.size();i++){
@@ -182,7 +182,8 @@ public class Geracao{
 								buff.append(
 									"    public synchronized void "+nomeA+"()throws InterruptedException{\n"+
 									"        "+acoes.get(j).getNome()+"_shared.dec();\n"+
-									"        System.out.println(\""+acoes.get(j).getNome()+
+									"        if("+acoes.get(j).getNome()+"_shared.inc())\n"+
+									"            System.out.println(\""+acoes.get(j).getNome()+
 											(acoes.get(j).getValorIndice() != -1 ? "["+acoes.get(j).getValorIndice()+"]":"")+"\");\n"+
 									"    }\n\n"
 								);
@@ -243,7 +244,7 @@ public class Geracao{
 			for(int i=0;i<shared.size();i++){
 				if(shared.get(i) != null){
 					String nome = shared.get(i).getNome();
-					buffMain.append("        Semaforo "+nome+"_shared = new Semaforo("+conta(nome)+");\n");
+					buffMain.append("        Monitor "+nome+"_shared = new Monitor("+conta(nome)+");\n");
 				}
 			}
 			for(int i=0;i<pthreadArray.size();i++){
@@ -262,6 +263,34 @@ public class Geracao{
 				buffMain.append(");\n");
 			}
 			buffMain.append(
+				"    }\n\n"+
+				"}"
+			);
+			buffMain.close();
+			file = new File("Generated/Monitor.java");
+			arquivos.add(file);
+			buffMain = new BufferedWriter(new FileWriter(file));
+			buffMain.append(
+				"class Monitor{\n\n"+
+				"    private int dec, inc, max;\n\n"+
+				"    Monitor(int val){\n"+
+				"        dec = val;\n"+
+				"        inc = val;\n"+
+				"        max = val;\n"+
+				"    }\n\n"+
+				"    public synchronized void dec() throws InterruptedException{\n"+
+				"        this.dec--;\n"+
+				"        while(this.dec > 0) wait();\n"+
+				"        notifyAll();\n"+
+				"    }\n\n"+
+				"    public synchronized boolean inc() throws InterruptedException{\n"+
+				"        this.inc--;\n"+
+				"        if(inc == 0){\n"+
+				"	        inc = max;\n"+
+				"	        dec = max;\n"+
+				"	        return true;\n"+
+				"        }\n"+
+				"        return false;\n"+
 				"    }\n\n"+
 				"}"
 			);

@@ -151,7 +151,7 @@ class Trace{
         public void actionPerformed(ActionEvent e){
             try{
                 for(int i=0;i<generator.getArquivos().size();i++){
-                    java.awt.Desktop.getDesktop().open(new File(generator.getArquivos().get(i).getName()));
+                    java.awt.Desktop.getDesktop().open(new File("Generated/"+generator.getArquivos().get(i).getName()));
                 } 
             }catch(Exception e1){
                 System.out.println(e1);
@@ -237,7 +237,7 @@ public class InterfaceGrafica{
         main = new JFrame("Animator");
 
         menuBar = new JMenuBar();
-        menuBar.setBounds(0, 0, 60, 30);
+        menuBar.setBounds(0, 0, 35, 20);
         fileMenu = new JMenu("File");
         newAction = new JMenuItem("New");
         openAction = new JMenuItem("Open");
@@ -258,15 +258,16 @@ public class InterfaceGrafica{
         
         compile = new JButton("Compile");
 
-        main.setSize(900, 600);
+        main.setSize(900, 610);
         main.setLayout(null);
 
         tab1.setLayout(null);
 
-        tabbedPane.setBounds(5, 100, 890, 460);
+        //tabbedPane.setBounds(5, 100, 890, 460);
+        tabbedPane.setBounds(5, 100, 890, 415);
 
-        scroll_editor_area.setBounds(5, 5, 307, 300);
-        compile.setBounds(0, 50, 110, 30);
+        scroll_editor_area.setBounds(5, 5, 880, 380);
+        compile.setBounds(390, 530, 110, 30);
         compile.addActionListener(listener_compile);
 
         tab1.add(scroll_editor_area);
@@ -274,7 +275,7 @@ public class InterfaceGrafica{
 
         tabbedPane.add("Editor", tab1);
 
-        main.add(menuBar);
+        //main.add(menuBar);
         main.add(tabbedPane);
 
     	main.setLocationRelativeTo(null);

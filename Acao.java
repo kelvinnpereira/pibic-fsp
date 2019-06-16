@@ -80,6 +80,10 @@ public class Acao{
         this.estado = e;
     }
 
+    public void setName(String name){
+        this.nome = name;
+    }
+
     public ProcessoLocal getPl(){
         return this.pl;
     }
