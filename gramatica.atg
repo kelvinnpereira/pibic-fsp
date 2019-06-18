@@ -283,11 +283,9 @@ COMPILER FSP $F
         boolean sharv = buscaNome(newName), sharb = false;
         for(int i=0;i<trace.getBoxes().size();i++){
             AcaoCheckBox box = trace.getBoxes().get(i);
-            System.out.println(i+": "+box.getAcao());
             if(box.getAcao().getNome().equals(newName)){
                 box.getAcao().setCompartilhada(true);
                 sharb = true;
-                System.out.println("shared acao: "+box.getAcao());
             }
         }
         for(int i=0;i<grafoArray.size();i++){
@@ -295,17 +293,14 @@ COMPILER FSP $F
             if(v != null){
                 v.setNome(newName);
                 v.setCompartilhada(sharv);
-                System.out.println("shared ver: "+v);
             }
         }
         for(int i=0;i<trace.getBoxes().size();i++){
             AcaoCheckBox box = trace.getBoxes().get(i);
-            System.out.println(i+": "+box.getAcao());
             if(box.getAcao().getNome().equals(oldName)){
                 box.getAcao().setName(newName);
                 box.getBox().setText(newName);
                 box.getAcao().setCompartilhada(sharb);
-                System.out.println("shared acao2: "+box.getAcao());
             }
         }
     }

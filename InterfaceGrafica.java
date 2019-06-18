@@ -2,10 +2,10 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
-import java.io.File;
-import java.io.InputStream;
-import java.io.ByteArrayInputStream;
+import java.io.*;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 class Trace{
 
@@ -223,13 +223,12 @@ public class InterfaceGrafica{
 
     private JFrame main;
     private JMenuBar menuBar;
-    private JMenu fileMenu;
-    private JMenuItem newAction;
-    private JMenuItem openAction;
+    private JMenu fileMenu, helpMenu;
+    private JMenuItem newAction, openAction, helpAction;
     private JTabbedPane tabbedPane;
-    private JPanel tab1;
+    private JPanel tab1, form;
     private ListenerCompile listener_compile;
-    private JTextArea editor_area;
+    private JTextArea editor_area, nome, matricula;
     private JScrollPane scroll_editor_area;
     private JButton compile;
 
@@ -237,15 +236,39 @@ public class InterfaceGrafica{
         main = new JFrame("Animator");
 
         menuBar = new JMenuBar();
-        menuBar.setBounds(0, 0, 35, 20);
+        menuBar.setBounds(0, 0, 900, 20);
         fileMenu = new JMenu("File");
         newAction = new JMenuItem("New");
+        newAction.addActionListener(new ListenerNew());
         openAction = new JMenuItem("Open");
+        openAction.addActionListener(new ListenerOpen());
+        helpMenu = new JMenu("Help");
+        helpAction = new JMenuItem("Help");
 
         fileMenu.add(newAction);
         fileMenu.add(openAction);
+        helpMenu.add(helpAction);
 
         menuBar.add(fileMenu);
+        menuBar.add(helpMenu);
+
+        form = new JPanel();
+        form.setBounds(0, 30, 400, 60);
+        form.setLayout(null);
+
+        JLabel label_nome = new JLabel("Nome: ");
+        label_nome.setBounds(0, 0, 120, 30);
+        nome = new JTextArea();
+        nome.setBounds(120, 5, 250, 20);
+        JLabel label_matricula = new JLabel("Nº de Matricula: ");
+        label_matricula.setBounds(0, 35, 120, 30);
+        matricula = new JTextArea();
+        matricula.setBounds(120, 40, 150, 20);
+
+        form.add(label_nome);
+        form.add(nome);
+        form.add(label_matricula);
+        form.add(matricula);
 
         tabbedPane = new JTabbedPane();
         
@@ -275,7 +298,8 @@ public class InterfaceGrafica{
 
         tabbedPane.add("Editor", tab1);
 
-        //main.add(menuBar);
+        main.add(menuBar);
+        main.add(form);
         main.add(tabbedPane);
 
     	main.setLocationRelativeTo(null);
@@ -296,6 +320,55 @@ public class InterfaceGrafica{
             }catch(Exception e1){
                 System.out.println();
                 e1.printStackTrace();
+            }
+        }
+    }
+
+    private class ListenerNew implements ActionListener{
+        public void actionPerformed(ActionEvent e){
+            try{
+                String fsp = editor_area.getText();
+                JFileChooser chooser = new JFileChooser();
+                JOptionPane pop_up = new JOptionPane();
+                if(chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION){
+                    String path = chooser.getSelectedFile().getPath();
+                    BufferedWriter buff = new BufferedWriter(new FileWriter(path));
+                    buff.append("/*Nome: "+nome.getText()+"\nMatricula: "+matricula.getText()+"*/\n");
+                    buff.append(editor_area.getText());
+                    buff.close();
+                }else{
+                    pop_up.showMessageDialog(main, "No Selected Directory");
+                }
+            }catch(Exception ex){
+                System.out.println(ex);
+            }
+        }
+    }
+
+    private class ListenerOpen implements ActionListener{
+        public void actionPerformed(ActionEvent e){
+            try{
+                String fsp = editor_area.getText();
+                JFileChooser chooser = new JFileChooser();
+                chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                JOptionPane pop_up = new JOptionPane();
+                if(chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION){
+                    editor_area.setText(new String(Files.readAllBytes(Paths.get(chooser.getSelectedFile().getPath()))));
+                }else{
+                    pop_up.showMessageDialog(main, "No Selected Directory");
+                }
+            }catch(Exception ex){
+                System.out.println(ex);
+            }
+        }
+    }
+
+    private class ListenerHelp implements ActionListener{
+        public void actionPerformed(ActionEvent e){
+            try{
+                
+            }catch(Exception ex){
+                System.out.println(ex);
             }
         }
     }

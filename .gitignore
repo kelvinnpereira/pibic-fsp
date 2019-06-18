@@ -4,4 +4,7 @@
 *.java.old
 #Para o arquivo trace.txt que e sempre gerado ao compilar o Coco.jar
 trace.txt
+#Arquivo usado para testes
 teste.txt
+#Diretorio que é gerado
+Generated/
