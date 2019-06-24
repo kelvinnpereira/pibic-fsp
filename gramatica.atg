@@ -47,6 +47,7 @@ COMPILER FSP $F
 
     public void newThread(){
         finalizaGrafo();
+        print();
         pthreadArray.add(new ProcessThread(processos, constArray, rangeArray, primeiro_atual));
         if(errors.count > 0) System.exit(1);
         init();
@@ -181,9 +182,9 @@ COMPILER FSP $F
     	}
     }
 
-    public boolean buscaNome(String nome){
+    public boolean buscaNome(String nome, int valor_indice){
         for(int i=0;i<grafoArray.size();i++){
-            Vertice v = grafoArray.get(i).busca(nome);
+            Vertice v = grafoArray.get(i).busca(nome, valor_indice);
             if(v != null){
                 v.setCompartilhada(true);
                 return true;
@@ -196,7 +197,7 @@ COMPILER FSP $F
     	Acao a = null;
     	if(exprBool(tiraIndice(bool, pa.getIndice(), pa.getEstado()+""))){
 	    	a = novaAcao(nome, indice, valor_indice, pa.getEstado(), pa);
-	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice(), buscaNome(nome));
+	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice(), buscaNome(nome, valor_indice));
 	        ArrayList<Acao> acoes_atuais = pa.getAcoesAtuais();
 	        if(acao_inicio){
 	        	a.setInicio(true);
@@ -279,13 +280,22 @@ COMPILER FSP $F
     	}
     }
 
-    public void rename(String newName, String oldName){
-        boolean sharv = buscaNome(newName), sharb = false;
-        for(int i=0;i<trace.getBoxes().size();i++){
-            AcaoCheckBox box = trace.getBoxes().get(i);
-            if(box.getAcao().getNome().equals(newName)){
-                box.getAcao().setCompartilhada(true);
-                sharb = true;
+    public void rename(String newName, String oldName, int valor_indice){
+        boolean sharv = false, sharb = false;
+        if(valor_indice == -1){
+            for(int i=0;i<grafoArray.size();i++){
+                Vertice v = grafoArray.get(i).busca(newName);
+                if(v != null){
+                    v.setCompartilhada(true);
+                    sharv = true;
+                }
+            }
+            for(int i=0;i<trace.getBoxes().size();i++){
+                AcaoCheckBox box = trace.getBoxes().get(i);
+                if(box.getAcao().getNome().equals(newName)){
+                    box.getAcao().setCompartilhada(true);
+                    sharb = true;
+                }
             }
         }
         for(int i=0;i<grafoArray.size();i++){
@@ -299,7 +309,7 @@ COMPILER FSP $F
             AcaoCheckBox box = trace.getBoxes().get(i);
             if(box.getAcao().getNome().equals(oldName)){
                 box.getAcao().setName(newName);
-                box.getBox().setText(newName);
+                box.getBox().setText(box.getBox().getText().replace(oldName, newName));
                 box.getAcao().setCompartilhada(sharb);
             }
         }
@@ -404,7 +414,9 @@ constant_declaration = "const"
 uppercase_id "=" 
 
 (.
+    la();
     Const c = new Const(nome, Integer.parseInt(la.val));
+    p(c.getNome());
     if(!constArray.contains(c))
         constArray.add(c);
 .)
@@ -582,7 +594,8 @@ action "/"
 action
 
 (.
-    rename(newName, oldName);
+    rename(newName, oldName, -1);
+    print();
 .)
 .
 
@@ -707,9 +720,9 @@ composite_process = "||"
 
 uppercase_id ["("parameter_list")"] "=" composite_body[label_visibility][relabels]".".
 
-composite_body = process_instance | parallel_list | composite_conditional | compositi_replicator .
+composite_body = process_instance | parallel_list | composite_conditional | composite_replicator .
 
-compositi_replicator = "forall" index composite_body.
+composite_replicator = "forall" index composite_body.
 
 composite_conditional = "if" boolean_expr "then" composite_body "else" composite_body.
 

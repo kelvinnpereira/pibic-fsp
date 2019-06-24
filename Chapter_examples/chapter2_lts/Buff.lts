@@ -1,1 +1,2 @@
 BUFF = (in[i:0..3]->out[i]-> BUFF).
+||B = (BUFF)/{en/in}.

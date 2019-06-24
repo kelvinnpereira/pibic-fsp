@@ -41,7 +41,7 @@ public class Geracao{
 			for(int j=0;j<processos.size();j++){
 				ArrayList<Acao> acoes = processos.get(j).getAcoes();
 				for(int k=0;k<acoes.size();k++){
-					if(acao.getNome().equals(acoes.get(k).getNome())){
+					if(acao.getNome().equals(acoes.get(k).getNome()) && acao.getValorIndice() == acoes.get(k).getValorIndice() ){
 						acao.setCompartilhada(true);
 						acoes.get(k).setCompartilhada(true);
 					}

@@ -66,6 +66,7 @@ public class Parser {
 
     public void newThread(){
         finalizaGrafo();
+        print();
         pthreadArray.add(new ProcessThread(processos, constArray, rangeArray, primeiro_atual));
         if(errors.count > 0) System.exit(1);
         init();
@@ -200,9 +201,9 @@ public class Parser {
     	}
     }
 
-    public boolean buscaNome(String nome){
+    public boolean buscaNome(String nome, int valor_indice){
         for(int i=0;i<grafoArray.size();i++){
-            Vertice v = grafoArray.get(i).busca(nome);
+            Vertice v = grafoArray.get(i).busca(nome, valor_indice);
             if(v != null){
                 v.setCompartilhada(true);
                 return true;
@@ -215,7 +216,7 @@ public class Parser {
     	Acao a = null;
     	if(exprBool(tiraIndice(bool, pa.getIndice(), pa.getEstado()+""))){
 	    	a = novaAcao(nome, indice, valor_indice, pa.getEstado(), pa);
-	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice(), buscaNome(nome));
+	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice(), buscaNome(nome, valor_indice));
 	        ArrayList<Acao> acoes_atuais = pa.getAcoesAtuais();
 	        if(acao_inicio){
 	        	a.setInicio(true);
@@ -298,13 +299,22 @@ public class Parser {
     	}
     }
 
-    public void rename(String newName, String oldName){
-        boolean sharv = buscaNome(newName), sharb = false;
-        for(int i=0;i<trace.getBoxes().size();i++){
-            AcaoCheckBox box = trace.getBoxes().get(i);
-            if(box.getAcao().getNome().equals(newName)){
-                box.getAcao().setCompartilhada(true);
-                sharb = true;
+    public void rename(String newName, String oldName, int valor_indice){
+        boolean sharv = false, sharb = false;
+        if(valor_indice == -1){
+            for(int i=0;i<grafoArray.size();i++){
+                Vertice v = grafoArray.get(i).busca(newName);
+                if(v != null){
+                    v.setCompartilhada(true);
+                    sharv = true;
+                }
+            }
+            for(int i=0;i<trace.getBoxes().size();i++){
+                AcaoCheckBox box = trace.getBoxes().get(i);
+                if(box.getAcao().getNome().equals(newName)){
+                    box.getAcao().setCompartilhada(true);
+                    sharb = true;
+                }
             }
         }
         for(int i=0;i<grafoArray.size();i++){
@@ -318,7 +328,7 @@ public class Parser {
             AcaoCheckBox box = trace.getBoxes().get(i);
             if(box.getAcao().getNome().equals(oldName)){
                 box.getAcao().setName(newName);
-                box.getBox().setText(newName);
+                box.getBox().setText(box.getBox().getText().replace(oldName, newName));
                 box.getAcao().setCompartilhada(sharb);
             }
         }
@@ -459,7 +469,9 @@ public class Parser {
 		
 		Expect(2);
 		Expect(20);
+		la();
 		Const c = new Const(nome, Integer.parseInt(la.val));
+		p(c.getNome());
 		if(!constArray.contains(c))
 		   constArray.add(c);
 		
@@ -778,7 +790,8 @@ public class Parser {
 		String oldName = la.val;
 		
 		action();
-		rename(newName, oldName);
+		rename(newName, oldName, -1);
+		print();
 		
 	}
 
@@ -910,7 +923,7 @@ public class Parser {
 		} else if (la.kind == 38) {
 			composite_conditional();
 		} else if (la.kind == 32) {
-			compositi_replicator();
+			composite_replicator();
 		} else SynErr(51);
 	}
 
@@ -946,7 +959,7 @@ public class Parser {
 		composite_body();
 	}
 
-	void compositi_replicator() {
+	void composite_replicator() {
 		Expect(32);
 		index();
 		composite_body();

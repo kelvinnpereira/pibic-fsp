@@ -140,6 +140,8 @@ class Trace{
     private class ListenerGenerate implements ActionListener{
     	public void actionPerformed(ActionEvent e){
             generator.gerate();
+            for(int i=0;i<grafoArray.size();i++)
+                System.out.println(grafoArray.get(i)+"\n");
             JOptionPane pop_up = new JOptionPane();
             pop_up.showMessageDialog(trace, "Generated Code Successful");
             generate.setEnabled(false);
@@ -224,28 +226,39 @@ public class InterfaceGrafica{
     private JFrame main;
     private JMenuBar menuBar;
     private JMenu fileMenu, helpMenu;
-    private JMenuItem newAction, openAction, helpAction;
+    private JMenuItem newAction, openAction, helpAction, saveAction;
     private JTabbedPane tabbedPane;
-    private JPanel tab1, form;
+    private JPanel editor, output, form;
     private ListenerCompile listener_compile;
-    private JTextArea editor_area, nome, matricula;
-    private JScrollPane scroll_editor_area;
+    private JTextArea editor_area, nome, matricula, output_area;
+    private JScrollPane scroll_editor_area, scroll_output_area;
     private JButton compile;
 
     InterfaceGrafica(){
+        Font font = new Font("Dialog", Font.BOLD, 16);
         main = new JFrame("Animator");
 
         menuBar = new JMenuBar();
         menuBar.setBounds(0, 0, 900, 20);
         fileMenu = new JMenu("File");
+        fileMenu.setFont(font);
+        System.out.println(fileMenu.getFont());
         newAction = new JMenuItem("New");
         newAction.addActionListener(new ListenerNew());
+        newAction.setFont(font);
+        saveAction = new JMenuItem("Save");
+        saveAction.addActionListener(new ListenerSave());
+        saveAction.setFont(font);
         openAction = new JMenuItem("Open");
         openAction.addActionListener(new ListenerOpen());
+        openAction.setFont(font);
         helpMenu = new JMenu("Help");
+        helpMenu.setFont(font);
         helpAction = new JMenuItem("Help");
+        helpAction.setFont(font);
 
         fileMenu.add(newAction);
+        fileMenu.add(saveAction);
         fileMenu.add(openAction);
         helpMenu.add(helpAction);
 
@@ -253,17 +266,21 @@ public class InterfaceGrafica{
         menuBar.add(helpMenu);
 
         form = new JPanel();
-        form.setBounds(0, 30, 400, 60);
+        form.setBounds(0, 30, 700, 100);
         form.setLayout(null);
 
         JLabel label_nome = new JLabel("Nome: ");
-        label_nome.setBounds(0, 0, 120, 30);
+        label_nome.setBounds(0, 0, 170, 30);
+        label_nome.setFont(font);
         nome = new JTextArea();
-        nome.setBounds(120, 5, 250, 20);
+        nome.setBounds(170, 5, 350, 25);
+        nome.setFont(font);
         JLabel label_matricula = new JLabel("Nº de Matricula: ");
-        label_matricula.setBounds(0, 35, 120, 30);
+        label_matricula.setBounds(0, 50, 170, 30);
+        label_matricula.setFont(font);
         matricula = new JTextArea();
-        matricula.setBounds(120, 40, 150, 20);
+        matricula.setBounds(170, 55, 150, 25);
+        matricula.setFont(font);
 
         form.add(label_nome);
         form.add(nome);
@@ -271,32 +288,44 @@ public class InterfaceGrafica{
         form.add(matricula);
 
         tabbedPane = new JTabbedPane();
+        tabbedPane.setFont(font);
         
-        tab1 = new JPanel();
-        
+        editor = new JPanel();
+        output = new JPanel();
+
         listener_compile = new ListenerCompile();
         
         editor_area = new JTextArea("A = (a->A).\nB = (b->B).\n||A_B = (A || B).");
+        editor_area.setFont(font);
+        output_area = new JTextArea("No outputs");
+        output_area.setEditable(false);
+        output_area.setFont(font);
         scroll_editor_area = new JScrollPane(editor_area);
+        scroll_output_area = new JScrollPane(output_area);
         
         compile = new JButton("Compile");
+        compile.setFont(font);
 
-        main.setSize(900, 610);
+        main.setSize(900, 720);
         main.setLayout(null);
 
-        tab1.setLayout(null);
+        editor.setLayout(null);
+        output.setLayout(null);
 
         //tabbedPane.setBounds(5, 100, 890, 460);
-        tabbedPane.setBounds(5, 100, 890, 415);
+        tabbedPane.setBounds(5, 150, 890, 415);
 
         scroll_editor_area.setBounds(5, 5, 880, 380);
-        compile.setBounds(390, 530, 110, 30);
+        scroll_output_area.setBounds(5, 5, 880, 380);
+        compile.setBounds(390, 580, 110, 30);
         compile.addActionListener(listener_compile);
 
-        tab1.add(scroll_editor_area);
+        editor.add(scroll_editor_area);
+        output.add(scroll_output_area);
         main.add(compile);
 
-        tabbedPane.add("Editor", tab1);
+        tabbedPane.add("Editor", editor);
+        tabbedPane.add("Output", output);
 
         main.add(menuBar);
         main.add(form);
@@ -311,6 +340,7 @@ public class InterfaceGrafica{
     private class ListenerCompile implements ActionListener{
         public void actionPerformed(ActionEvent e){
             try{
+                tabbedPane.setSelectedIndex(1);
                 String string = editor_area.getText();
 				InputStream inputStream = new ByteArrayInputStream(string.getBytes(Charset.forName("UTF-8")));
 				Scanner scanner = new Scanner(inputStream);
@@ -327,8 +357,20 @@ public class InterfaceGrafica{
     private class ListenerNew implements ActionListener{
         public void actionPerformed(ActionEvent e){
             try{
+                editor_area.setText("");
+            }catch(Exception ex){
+                System.out.println(ex);
+            }
+        }
+    }
+
+    private class ListenerSave implements ActionListener{
+        public void actionPerformed(ActionEvent e){
+            try{
                 String fsp = editor_area.getText();
                 JFileChooser chooser = new JFileChooser();
+                chooser.setDialogTitle("Save");
+                chooser.setApproveButtonText("Save");
                 JOptionPane pop_up = new JOptionPane();
                 if(chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION){
                     String path = chooser.getSelectedFile().getPath();
