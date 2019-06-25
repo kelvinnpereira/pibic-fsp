@@ -14,7 +14,7 @@ public class Parser {
 	public static final int _integer = 1;
 	public static final int _uppercase_id = 2;
 	public static final int _lowercase_id = 3;
-	public static final int maxT = 41;
+	public static final int maxT = 43;
 
 	static final boolean _T = true;
 	static final boolean _x = false;
@@ -31,10 +31,12 @@ public class Parser {
     public ArrayList<ProcessoLocal> locais;
     public ArrayList<Range> rangeArray;
     public ArrayList<Const> constArray;
+    public ArrayList<String> sharing_set;
+    public ArrayList<ProcessInstance> pi;
     public Processo processo_atual, primeiro_atual;
     public Acao acao_atual;
     public int sup, inf, valor_expr;
-    public String index, expressao = "", bool = "", composite_process_name = "";
+    public String index, expressao = "", bool = "", composite_process_name = "", prefixo;
     public ArrayList<HiperGrafo> grafoArray = new ArrayList<HiperGrafo>();
     public HiperGrafo grafo;
     public boolean acao_inicio, conjunto;
@@ -44,6 +46,7 @@ public class Parser {
     private ArrayList<ProcessThread> pthreadArray = new ArrayList<ProcessThread>();
     private Geracao generator = new Geracao(pthreadArray);
     private Trace trace;
+	private InterfaceGrafica ig;
 
     public void init(){
         processos = new ArrayList<Processo>();
@@ -64,11 +67,13 @@ public class Parser {
         this.trace = trace;
     }
 
+	public void setIg(InterfaceGrafica ig){
+        this.ig = ig;
+    }
+
     public void newThread(){
         finalizaGrafo();
-        print();
         pthreadArray.add(new ProcessThread(processos, constArray, rangeArray, primeiro_atual));
-        if(errors.count > 0) System.exit(1);
         init();
     }
 
@@ -176,8 +181,7 @@ public class Parser {
             try{
                 return (boolean)eng.eval(expr);
             }catch(Exception e){
-                System.out.println("Erro de expressao em: "+expr);
-                System.exit(1);
+                ig.output_area.setText(ig.output_area.getText()+"-- line "+t.line+" col "+t.col+": invalid expression "+expr+"\n");
             }
         }
         return true;
@@ -188,8 +192,7 @@ public class Parser {
             try{
                 return (int)eng.eval(expr);
             }catch(Exception e){
-                System.out.println("Erro de expressao em: "+expr);
-                System.exit(1);
+                ig.output_area.setText(ig.output_area.getText()+"-- line "+t.line+" col "+t.col+": invalid expression "+expr+"\n");
             }
         }
         return -1;
@@ -204,7 +207,7 @@ public class Parser {
     public boolean buscaNome(String nome, int valor_indice){
         for(int i=0;i<grafoArray.size();i++){
             Vertice v = grafoArray.get(i).busca(nome, valor_indice);
-            if(v != null){
+            if(v != null && grafoArray.get(i) != grafo){
                 v.setCompartilhada(true);
                 return true;
             }
@@ -318,10 +321,13 @@ public class Parser {
             }
         }
         for(int i=0;i<grafoArray.size();i++){
-            Vertice v = grafoArray.get(i).busca(oldName);
-            if(v != null){
-                v.setNome(newName);
-                v.setCompartilhada(sharv);
+            ArrayList<Vertice> vertices = grafoArray.get(i).getVertices();
+            for(int j=0;j<vertices.size();j++){
+                Vertice v = vertices.get(j);
+                if(v.getNome().equals(oldName) ){
+                    v.setNome(newName);
+                    v.setCompartilhada(sharv);
+                }
             }
         }
         for(int i=0;i<trace.getBoxes().size();i++){
@@ -342,12 +348,14 @@ public class Parser {
 	}
 
 	void SynErr (int n) {
-		if (errDist >= minErrDist) errors.SynErr(la.line, la.col, n);
+		String s = errors.SynErr(la.line, la.col, n);
+		if (errDist >= minErrDist) ig.output_area.setText(ig.output_area.getText()+""+s+(s.equals("") ? "":"\n"));
 		errDist = 0;
 	}
 
 	public void SemErr (String msg) {
-		if (errDist >= minErrDist) errors.SemErr(t.line, t.col, msg);
+		String s = errors.SemErr(t.line, t.col, msg);
+		if (errDist >= minErrDist) ig.output_area.setText(ig.output_area.getText()+""+s+(s.equals("") ? "":"\n"));
 		errDist = 0;
 	}
 	
@@ -401,8 +409,6 @@ public class Parser {
 		while (StartOf(1)) {
 			start();
 		}
-		startInterface();
-		
 	}
 
 	void start() {
@@ -414,7 +420,7 @@ public class Parser {
 			range_declaration();
 		} else if (la.kind == 16) {
 			composite_process();
-		} else SynErr(42);
+		} else SynErr(44);
 	}
 
 	void primitive_process() {
@@ -451,7 +457,7 @@ public class Parser {
 			Get();
 			primitive_process_body();
 			Expect(9);
-		} else SynErr(43);
+		} else SynErr(45);
 		if(la.val.equals(".")){
 		   newThread();
 		}
@@ -460,7 +466,7 @@ public class Parser {
 			Get();
 		} else if (la.kind == 28) {
 			Get();
-		} else SynErr(44);
+		} else SynErr(46);
 	}
 
 	void constant_declaration() {
@@ -515,6 +521,7 @@ public class Parser {
 	void composite_process() {
 		Expect(16);
 		generator.setCPN(la.val);
+		pi = new ArrayList<ProcessInstance>();
 		
 		Expect(2);
 		if (la.kind == 8) {
@@ -578,7 +585,7 @@ public class Parser {
 			Get();
 		} else if (la.kind == 1) {
 			Get();
-		} else SynErr(45);
+		} else SynErr(47);
 	}
 
 	void boolean_expr() {
@@ -744,7 +751,7 @@ public class Parser {
 			hide_label();
 		} else if (la.kind == 31) {
 			expose_label();
-		} else SynErr(46);
+		} else SynErr(48);
 	}
 
 	void hide_label() {
@@ -779,7 +786,7 @@ public class Parser {
 			Get();
 			index();
 			relabel_set();
-		} else SynErr(47);
+		} else SynErr(49);
 	}
 
 	void simple_relabel() {
@@ -791,7 +798,6 @@ public class Parser {
 		
 		action();
 		rename(newName, oldName, -1);
-		print();
 		
 	}
 
@@ -838,7 +844,7 @@ public class Parser {
 			} else {
 				Get();
 			}
-		} else SynErr(48);
+		} else SynErr(50);
 	}
 
 	void primitive_process_body() {
@@ -872,7 +878,12 @@ public class Parser {
 		
 		Expect(2);
 		Expect(20);
-		Const c = new Const(nome, Integer.parseInt(la.val));
+		int n = 0;
+		try{
+			n = Integer.parseInt(la.val);
+		}catch(Exception e){
+		}
+		Const c = new Const(nome, n);
 		if(!constArray.contains(c))
 		   constArray.add(c);
 		
@@ -886,7 +897,7 @@ public class Parser {
 			local_process();
 		} else if (la.kind == 38) {
 			condition();
-		} else SynErr(49);
+		} else SynErr(51);
 	}
 
 	void choice() {
@@ -901,7 +912,7 @@ public class Parser {
 			action_set();
 		} else if (la.kind == 3) {
 			action();
-		} else SynErr(50);
+		} else SynErr(52);
 		Expect(33);
 		process_body();
 	}
@@ -916,7 +927,7 @@ public class Parser {
 	}
 
 	void composite_body() {
-		if (la.kind == 2 || la.kind == 3) {
+		if (la.kind == 2 || la.kind == 3 || la.kind == 27) {
 			process_instance();
 		} else if (la.kind == 8) {
 			parallel_list();
@@ -924,12 +935,37 @@ public class Parser {
 			composite_conditional();
 		} else if (la.kind == 32) {
 			composite_replicator();
-		} else SynErr(51);
+		} else SynErr(53);
 	}
 
 	void process_instance() {
+		sharing_set = new ArrayList<String>();
+		prefixo = "";
+		
+		if (la.kind == 3 || la.kind == 27) {
+			if (la.kind == 27) {
+				Get();
+				sharing_set.add(la.val);
+				
+				Expect(3);
+				while (la.kind == 28) {
+					Get();
+					sharing_set.add(la.val);
+					
+					Expect(3);
+				}
+				Expect(41);
+			} else {
+				sharing_set.add(la.val);
+				
+				Get();
+				Expect(42);
+			}
+		}
 		if (la.kind == 3) {
-			action();
+			prefixo = la.val;
+			
+			Get();
 			Expect(24);
 		}
 		Expect(2);
@@ -985,9 +1021,9 @@ public class Parser {
 	}
 
 	private static final boolean[][] set = {
-		{_T,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x},
-		{_x,_x,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _T,_x,_x,_T, _x,_T,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x},
-		{_x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_T,_T, _T,_T,_T,_T, _T,_T,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x}
+		{_T,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x},
+		{_x,_x,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _T,_x,_x,_T, _x,_T,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x},
+		{_x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_T,_T, _T,_T,_T,_T, _T,_T,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x}
 
 	};
 } // end Parser
@@ -997,8 +1033,9 @@ class Errors {
 	public int count = 0;                                    // number of errors detected
 	public java.io.PrintStream errorStream = System.out;     // error messages go to this stream
 	public String errMsgFormat = "-- line {0} col {1}: {2}"; // 0=line, 1=column, 2=text
+	public String errorMsg = "";
 	
-	protected void printMsg(int line, int column, String msg) {
+	protected String printMsg(int line, int column, String msg) {
 		StringBuffer b = new StringBuffer(errMsgFormat);
 		int pos = b.indexOf("{0}");
 		if (pos >= 0) { b.delete(pos, pos+3); b.insert(pos, line); }
@@ -1006,10 +1043,10 @@ class Errors {
 		if (pos >= 0) { b.delete(pos, pos+3); b.insert(pos, column); }
 		pos = b.indexOf("{2}");
 		if (pos >= 0) b.replace(pos, pos+3, msg);
-		errorStream.println(b.toString());
+		return b.toString();
 	}
 	
-	public void SynErr (int line, int col, int n) {
+	public String SynErr (int line, int col, int n) {
 		String s;
 		switch (n) {
 			case 0: s = "EOF expected"; break;
@@ -1053,26 +1090,29 @@ class Errors {
 			case 38: s = "\"if\" expected"; break;
 			case 39: s = "\"then\" expected"; break;
 			case 40: s = "\"else\" expected"; break;
-			case 41: s = "??? expected"; break;
-			case 42: s = "invalid start"; break;
-			case 43: s = "invalid primitive_process"; break;
-			case 44: s = "invalid primitive_process"; break;
-			case 45: s = "invalid factor"; break;
-			case 46: s = "invalid label_visibility"; break;
-			case 47: s = "invalid relabel"; break;
-			case 48: s = "invalid local_process"; break;
-			case 49: s = "invalid process_body"; break;
-			case 50: s = "invalid choice"; break;
-			case 51: s = "invalid composite_body"; break;
+			case 41: s = "\"}::\" expected"; break;
+			case 42: s = "\"::\" expected"; break;
+			case 43: s = "??? expected"; break;
+			case 44: s = "invalid start"; break;
+			case 45: s = "invalid primitive_process"; break;
+			case 46: s = "invalid primitive_process"; break;
+			case 47: s = "invalid factor"; break;
+			case 48: s = "invalid label_visibility"; break;
+			case 49: s = "invalid relabel"; break;
+			case 50: s = "invalid local_process"; break;
+			case 51: s = "invalid process_body"; break;
+			case 52: s = "invalid choice"; break;
+			case 53: s = "invalid composite_body"; break;
 			default: s = "error " + n; break;
 		}
-		printMsg(line, col, s);
 		count++;
+		if(s.contains("invalid")) return "";
+		return printMsg(line, col, s);
 	}
 
-	public void SemErr (int line, int col, String s) {	
-		printMsg(line, col, s);
+	public String SemErr (int line, int col, String s) {	
 		count++;
+		return printMsg(line, col, s);
 	}
 	
 	public void SemErr (String s) {
@@ -1080,8 +1120,8 @@ class Errors {
 		count++;
 	}
 	
-	public void Warning (int line, int col, String s) {	
-		printMsg(line, col, s);
+	public String Warning (int line, int col, String s) {	
+		return printMsg(line, col, s);
 	}
 	
 	public void Warning (String s) {
