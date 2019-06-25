@@ -12,10 +12,12 @@ COMPILER FSP $F
     public ArrayList<ProcessoLocal> locais;
     public ArrayList<Range> rangeArray;
     public ArrayList<Const> constArray;
+    public ArrayList<String> sharing_set;
+    public ArrayList<ProcessInstance> pi;
     public Processo processo_atual, primeiro_atual;
     public Acao acao_atual;
     public int sup, inf, valor_expr;
-    public String index, expressao = "", bool = "", composite_process_name = "";
+    public String index, expressao = "", bool = "", composite_process_name = "", prefixo;
     public ArrayList<HiperGrafo> grafoArray = new ArrayList<HiperGrafo>();
     public HiperGrafo grafo;
     public boolean acao_inicio, conjunto;
@@ -185,7 +187,7 @@ COMPILER FSP $F
     public boolean buscaNome(String nome, int valor_indice){
         for(int i=0;i<grafoArray.size();i++){
             Vertice v = grafoArray.get(i).busca(nome, valor_indice);
-            if(v != null){
+            if(v != null && grafoArray.get(i) != grafo){
                 v.setCompartilhada(true);
                 return true;
             }
@@ -299,10 +301,13 @@ COMPILER FSP $F
             }
         }
         for(int i=0;i<grafoArray.size();i++){
-            Vertice v = grafoArray.get(i).busca(oldName);
-            if(v != null){
-                v.setNome(newName);
-                v.setCompartilhada(sharv);
+            ArrayList<Vertice> vertices = grafoArray.get(i).getVertices();
+            for(int j=0;j<vertices.size();j++){
+                Vertice v = vertices.get(j);
+                if(v.getNome().equals(oldName) ){
+                    v.setNome(newName);
+                    v.setCompartilhada(sharv);
+                }
             }
         }
         for(int i=0;i<trace.getBoxes().size();i++){
@@ -327,7 +332,7 @@ integer = digit {digit}.
 
 uppercase_id = uppercase_letter { digit | lowercase_letter | uppercase_letter | "_" }.
 
-lowercase_id = lowercase_letter { digit | lowercase_letter | uppercase_letter | "_" }.
+lowercase_id = lowercase_letter { digit | lowercase_letter | uppercase_letter | "_" | "." }.
 
 COMMENTS FROM "/*" TO "*/"
 
@@ -340,13 +345,8 @@ FSP =
 (.
     init();
 .)
-start{start}
 
-(.
-	startInterface();
-.)
-
-.
+start{start}.
 
 start = primitive_process | constant_declaration | range_declaration | composite_process.
 
@@ -646,6 +646,7 @@ uppercase_id "="
 
 (.
     Const c = new Const(nome, Integer.parseInt(la.val));
+    System.out.println("const: "+c.getNome()+ "=" +c.getValor());
     if(!constArray.contains(c))
         constArray.add(c);
 .)
@@ -716,6 +717,7 @@ composite_process = "||"
 
 (.
     generator.setCPN(la.val);
+    pi = new ArrayList<ProcessInstance>();
 .)
 
 uppercase_id ["("parameter_list")"] "=" composite_body[label_visibility][relabels]".".
@@ -728,7 +730,42 @@ composite_conditional = "if" boolean_expr "then" composite_body "else" composite
 
 parallel_list = "(" composite_body {"||" composite_body} ")".
 
-process_instance = [action":"]uppercase_id["("actual_parameter_list")"].
+process_instance = 
+
+(.
+    sharing_set = new ArrayList<String>();
+    prefixo = "";
+.)
+
+[("{" 
+
+(.
+    sharing_set.add(la.val);
+.)
+
+lowercase_id {","
+
+(.
+    sharing_set.add(la.val);
+.)
+
+lowercase_id} "}::") | 
+
+(.
+    sharing_set.add(la.val);
+.)
+
+(lowercase_id"::")]
+[
+    
+    (.
+        prefixo = la.val;
+    .)
+    
+    lowercase_id":"
+]
+
+uppercase_id["("actual_parameter_list")"].
 
 actual_parameter_list = expr {"," expr}.
 

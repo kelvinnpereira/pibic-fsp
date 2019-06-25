@@ -8,7 +8,8 @@ public class Const{
         this.valor = valor;
     }
 
-    public boolean equals(Const c){
+    public boolean equals(Object o){
+        Const c = (Const)o;
         return nome.equals(c.nome);
     }
 

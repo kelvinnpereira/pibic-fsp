@@ -12,11 +12,9 @@ class Trace{
     private JFrame trace;
     private JPanel panel;
     private JScrollPane scroll_panel, scroll_text_area;
-    private ListenerBox listener_box;
-    private ListenerGenerate listener_generate;
-    private ListenerView listener_view;
     private JTextArea text_area;
     private JButton generate, view;
+    private ListenerBox listener_box;
     private Geracao generator;
     private ArrayList<HiperGrafo> grafoArray;
     private ArrayList<AcaoCheckBox> boxes;
@@ -42,8 +40,6 @@ class Trace{
         panel = new JPanel();
         scroll_panel = new JScrollPane(panel);
         listener_box = new ListenerBox();
-        listener_generate = new ListenerGenerate();
-        listener_view = new ListenerView();
         text_area = new JTextArea("");
         scroll_text_area = new JScrollPane(text_area);
         generate = new JButton("Generate");
@@ -56,11 +52,11 @@ class Trace{
     	scroll_text_area.setBounds(5, 5, 150, 300);
 
     	generate.setBounds(190, 5, 110, 30);
-    	generate.addActionListener(listener_generate);
+    	generate.addActionListener(new ListenerGenerate());
 
         view.setBounds(100, 310, 110, 30);
         view.setEnabled(false);
-        view.addActionListener(listener_view);
+        view.addActionListener(new ListenerView());
     	
     	for(int i=0;i<boxes.size();i++){
             boxes.get(i).getBox().setEnabled(false);
@@ -140,8 +136,6 @@ class Trace{
     private class ListenerGenerate implements ActionListener{
     	public void actionPerformed(ActionEvent e){
             generator.gerate();
-            for(int i=0;i<grafoArray.size();i++)
-                System.out.println(grafoArray.get(i)+"\n");
             JOptionPane pop_up = new JOptionPane();
             pop_up.showMessageDialog(trace, "Generated Code Successful");
             generate.setEnabled(false);
@@ -223,16 +217,16 @@ public class InterfaceGrafica{
 
 	public static final int N = 30;
 
-    private JFrame main;
-    private JMenuBar menuBar;
-    private JMenu fileMenu, helpMenu;
-    private JMenuItem newAction, openAction, helpAction, saveAction;
-    private JTabbedPane tabbedPane;
-    private JPanel editor, output, form;
-    private ListenerCompile listener_compile;
-    private JTextArea editor_area, nome, matricula, output_area;
-    private JScrollPane scroll_editor_area, scroll_output_area;
-    private JButton compile;
+    JFrame main;
+    JMenuBar menuBar;
+    JMenu fileMenu, helpMenu;
+    JMenuItem newAction, openAction, helpAction, saveAction;
+    JTabbedPane tabbedPane;
+    JPanel editor, output, form;
+    JTextArea editor_area, nome, matricula, output_area;
+    JScrollPane scroll_editor_area, scroll_output_area;
+    JButton compile, tracing;
+    Parser parser;
 
     InterfaceGrafica(){
         Font font = new Font("Dialog", Font.BOLD, 16);
@@ -242,7 +236,6 @@ public class InterfaceGrafica{
         menuBar.setBounds(0, 0, 900, 20);
         fileMenu = new JMenu("File");
         fileMenu.setFont(font);
-        System.out.println(fileMenu.getFont());
         newAction = new JMenuItem("New");
         newAction.addActionListener(new ListenerNew());
         newAction.setFont(font);
@@ -292,12 +285,10 @@ public class InterfaceGrafica{
         
         editor = new JPanel();
         output = new JPanel();
-
-        listener_compile = new ListenerCompile();
         
         editor_area = new JTextArea("A = (a->A).\nB = (b->B).\n||A_B = (A || B).");
         editor_area.setFont(font);
-        output_area = new JTextArea("No outputs");
+        output_area = new JTextArea("");
         output_area.setEditable(false);
         output_area.setFont(font);
         scroll_editor_area = new JScrollPane(editor_area);
@@ -305,6 +296,9 @@ public class InterfaceGrafica{
         
         compile = new JButton("Compile");
         compile.setFont(font);
+        tracing = new JButton("Tracing");
+        tracing.setFont(font);
+        tracing.setEnabled(false);
 
         main.setSize(900, 720);
         main.setLayout(null);
@@ -317,12 +311,15 @@ public class InterfaceGrafica{
 
         scroll_editor_area.setBounds(5, 5, 880, 380);
         scroll_output_area.setBounds(5, 5, 880, 380);
-        compile.setBounds(390, 580, 110, 30);
-        compile.addActionListener(listener_compile);
+        compile.setBounds(320, 580, 110, 30);
+        compile.addActionListener(new ListenerCompile());
+        tracing.setBounds(440, 580, 110, 30);
+        tracing.addActionListener(new ListenerTracing());
 
         editor.add(scroll_editor_area);
         output.add(scroll_output_area);
         main.add(compile);
+        main.add(tracing);
 
         tabbedPane.add("Editor", editor);
         tabbedPane.add("Output", output);
@@ -340,13 +337,32 @@ public class InterfaceGrafica{
     private class ListenerCompile implements ActionListener{
         public void actionPerformed(ActionEvent e){
             try{
+                output_area.setText("");
                 tabbedPane.setSelectedIndex(1);
                 String string = editor_area.getText();
 				InputStream inputStream = new ByteArrayInputStream(string.getBytes(Charset.forName("UTF-8")));
 				Scanner scanner = new Scanner(inputStream);
-				Parser parser = new Parser(scanner);
+				parser = new Parser(scanner);
                 parser.setTrace(new Trace());
+                parser.setIg(InterfaceGrafica.this);
 				parser.Parse();
+                if(parser.errors.count == 0){
+                    output_area.setText("Compile Successful");
+                    tracing.setEnabled(true);
+                }else{   
+                    tracing.setEnabled(false);
+                }
+            }catch(Exception e1){
+                System.out.println();
+                e1.printStackTrace();
+            }
+        }
+    }
+
+    private class ListenerTracing implements ActionListener{
+        public void actionPerformed(ActionEvent e){
+            try{
+                parser.startInterface();
             }catch(Exception e1){
                 System.out.println();
                 e1.printStackTrace();
