@@ -18,11 +18,11 @@ public class HiperGrafo{
         return this.arestas;
     }
 
-    public Vertice insereVertice(String nome, int id, int estado, int valor_indice, boolean compartilhada){
+    public Vertice insereVertice(String nome, int id, int estado, int valor_indice){
         if(nome == null) return null;
         Vertice existe = busca(nome, id, estado, valor_indice);
         if(existe != null) return existe;
-        Vertice v = new Vertice(nome, id, estado, valor_indice, compartilhada);
+        Vertice v = new Vertice(nome, id, estado, valor_indice);
         vertices.add(v);
         return v;
     }
@@ -46,7 +46,7 @@ public class HiperGrafo{
     }
 
     public Vertice busca(String nome, int id, int estado, int valor_indice){
-        Vertice v = new Vertice(nome, id, estado, valor_indice, false);
+        Vertice v = new Vertice(nome, id, estado, valor_indice);
         for(int i=0;i<vertices.size();i++){
             if( v.equals(vertices.get(i)) ){
                 return vertices.get(i);
@@ -56,7 +56,7 @@ public class HiperGrafo{
     }
 
     public Vertice buscaUltimo(String nome, int id, int estado, int valor_indice){
-        Vertice v = new Vertice(nome, id, estado, valor_indice, false), ret = null;
+        Vertice v = new Vertice(nome, id, estado, valor_indice), ret = null;
         for(int i=0;i<vertices.size();i++){
             if( v.equals(vertices.get(i)) )
                 ret = vertices.get(i);
@@ -93,6 +93,32 @@ public class HiperGrafo{
         for(int i=0;i<vertices.size();i++)
             str += vertices.get(i).toString() + "\n\n\n";
         return str;
+    }
+
+    public Object clone(){
+        HiperGrafo hg = new HiperGrafo();
+        for(int i=0;i<this.vertices.size();i++){
+            Vertice v = this.vertices.get(i);
+            hg.insereVertice(v.getNome(), v.getId(), v.getEstado(), v.getValorIndice());
+        }
+        for(int i=0;i<this.vertices.size();i++){
+            ArrayList<Aresta> a = this.vertices.get(i).getArestas();
+            for(int j=0;j<a.size();j++){
+                ArrayList<Vertice> ve = a.get(j).getVertices();
+                for(int k=0;k<ve.size();k++){
+                    Vertice v1 = this.vertices.get(i), v2 = ve.get(k);
+                    hg.insereAdj(hg.busca(v1.getNome(), v1.getId(), v1.getEstado(), v1.getValorIndice()), hg.busca(v2.getNome(), v2.getId(), v2.getEstado(), v2.getValorIndice()), new Aresta());
+                }
+            }
+        }
+        return hg;
+    }
+
+    public void renameAll(String prefix){
+        ArrayList<Vertice> v = vertices;
+        for(int i=0;i<v.size();i++){
+            v.get(i).setNome(prefix+v.get(i).getNome());
+        }
     }
 
 }

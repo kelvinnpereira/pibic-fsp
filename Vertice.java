@@ -10,7 +10,7 @@ public class Vertice{
     Vertice(){
     }
 
-    Vertice(String nome, int id, int estado, int valor_indice, boolean compartilhada){
+    Vertice(String nome, int id, int estado, int valor_indice){
         this.nome = nome;
         this.id = id;
         this.estado = estado;

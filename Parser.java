@@ -14,7 +14,7 @@ public class Parser {
 	public static final int _integer = 1;
 	public static final int _uppercase_id = 2;
 	public static final int _lowercase_id = 3;
-	public static final int maxT = 43;
+	public static final int maxT = 42;
 
 	static final boolean _T = true;
 	static final boolean _x = false;
@@ -36,17 +36,17 @@ public class Parser {
     public Processo processo_atual, primeiro_atual;
     public Acao acao_atual;
     public int sup, inf, valor_expr;
-    public String index, expressao = "", bool = "", composite_process_name = "", prefixo;
+    public String index, expressao = "", bool = "", composite_process_name = "", prefix;
     public ArrayList<HiperGrafo> grafoArray = new ArrayList<HiperGrafo>();
     public HiperGrafo grafo;
     public boolean acao_inicio, conjunto;
     public Vertice vertice_atual;
     private ScriptEngineManager manager = new ScriptEngineManager();
     private ScriptEngine eng = manager.getEngineByName("JavaScript");
-    private ArrayList<ProcessThread> pthreadArray = new ArrayList<ProcessThread>();
-    private Geracao generator = new Geracao(pthreadArray);
+    private ArrayList<ProcessThread> pthreadArray = new ArrayList<ProcessThread>(), pthreadArrayInstance = new ArrayList<ProcessThread>();
+    private Geracao generator = new Geracao(pthreadArrayInstance);
     private Trace trace;
-	private InterfaceGrafica ig;
+    private InterfaceGrafica ig;
 
     public void init(){
         processos = new ArrayList<Processo>();
@@ -67,17 +67,22 @@ public class Parser {
         this.trace = trace;
     }
 
-	public void setIg(InterfaceGrafica ig){
+    public void setIg(InterfaceGrafica ig){
         this.ig = ig;
     }
 
     public void newThread(){
         finalizaGrafo();
         pthreadArray.add(new ProcessThread(processos, constArray, rangeArray, primeiro_atual));
+        if(errors.count > 0) System.exit(1);
         init();
     }
 
     public void startInterface(){
+        if(pthreadArray.size() == 1) {
+            generator.setPthreadArray(pthreadArray);
+            addCheckBox(pthreadArray.get(0), grafoArray.get(0));
+        }
         trace.setGrafoArray(grafoArray);
         trace.setGenerator(generator);
         trace.start_trace();
@@ -109,6 +114,14 @@ public class Parser {
         System.out.println("--------------------------------------------------------------------");
     }
 
+    public void printGrafos(){
+        System.out.println("--------------------------------------------------------------------");
+        for(int i=0;i<grafoArray.size();i++){
+            System.out.println(grafoArray.get(i)+"\n");
+            System.out.println("--------------------------------------------------------------------");
+        }
+    }
+
     public Processo novoProcesso(String nome, String indice, int valor, Range range){
         Processo p = new Processo(nome, indice, valor, range);
         if(!processos.contains(p)) 
@@ -119,12 +132,10 @@ public class Parser {
     public Acao novaAcao(String nome, String indice, int valor_indice, int estado, Processo pa){
         if(pa == null) return null;
         Acao a = new Acao(nome, pa, indice, valor_indice, estado);
-        generator.isShared(a);
         int i = pa.getAcoes().lastIndexOf(a), num = 0;
         if(i != -1)
             a.setId(pa.getAcoes().get(i).getId() + 1);
         pa.getAcoes().add(a);
-        trace.addCheckBox(a, grafo);
         return a;
     }
 
@@ -204,10 +215,22 @@ public class Parser {
     	}
     }
 
-    public boolean buscaNome(String nome, int valor_indice){
+    public void buscaNome(ArrayList<ProcessThread> pthreadArray, ArrayList<HiperGrafo> grafoArray){
+        for(int i=0;i<pthreadArray.size();i++){
+            ArrayList<Processo> p = pthreadArray.get(i).getProcessos();
+            for(int j=0;j<p.size();j++){
+                ArrayList<Acao> a = p.get(j).getAcoes();
+                for(int k=0;k<a.size();k++){
+                    if(buscaNome(grafoArray, a.get(k).getNome(), a.get(k).getValorIndice(), i)) a.get(k).setCompartilhada(true);
+                }
+            }
+        }
+    }
+
+    public boolean buscaNome(ArrayList<HiperGrafo> grafoArray, String nome, int valor_indice, int indiceGrafo){
         for(int i=0;i<grafoArray.size();i++){
             Vertice v = grafoArray.get(i).busca(nome, valor_indice);
-            if(v != null && grafoArray.get(i) != grafo){
+            if(v != null && i != indiceGrafo){
                 v.setCompartilhada(true);
                 return true;
             }
@@ -219,7 +242,7 @@ public class Parser {
     	Acao a = null;
     	if(exprBool(tiraIndice(bool, pa.getIndice(), pa.getEstado()+""))){
 	    	a = novaAcao(nome, indice, valor_indice, pa.getEstado(), pa);
-	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice(), buscaNome(nome, valor_indice));
+	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice());
 	        ArrayList<Acao> acoes_atuais = pa.getAcoesAtuais();
 	        if(acao_inicio){
 	        	a.setInicio(true);
@@ -279,7 +302,7 @@ public class Parser {
             int j = locais.lastIndexOf(pl);
             if(j == -1)
                 locais.add(pl);
-            vertice_atual = grafo.insereVertice(nome, 0, pa.getEstado(), valor_indice, false);
+            vertice_atual = grafo.insereVertice(nome, 0, pa.getEstado(), valor_indice);
             ArrayList<Acao> acoes_atuais = pa.getAcoesAtuais();
         	for(int i=0;i<acoes_atuais.size();i++){
                 grafo.insereAdjSimetrica(grafo.busca(acoes_atuais.get(i).getNome(), acoes_atuais.get(i).getId(), acoes_atuais.get(i).getEstado(), acoes_atuais.get(i).getValorIndice()), vertice_atual);
@@ -302,40 +325,35 @@ public class Parser {
     	}
     }
 
-    public void rename(String newName, String oldName, int valor_indice){
-        boolean sharv = false, sharb = false;
-        if(valor_indice == -1){
-            for(int i=0;i<grafoArray.size();i++){
-                Vertice v = grafoArray.get(i).busca(newName);
-                if(v != null){
-                    v.setCompartilhada(true);
-                    sharv = true;
-                }
-            }
-            for(int i=0;i<trace.getBoxes().size();i++){
-                AcaoCheckBox box = trace.getBoxes().get(i);
-                if(box.getAcao().getNome().equals(newName)){
-                    box.getAcao().setCompartilhada(true);
-                    sharb = true;
-                }
-            }
-        }
+    public void rename(String newName, String oldName){
         for(int i=0;i<grafoArray.size();i++){
             ArrayList<Vertice> vertices = grafoArray.get(i).getVertices();
             for(int j=0;j<vertices.size();j++){
                 Vertice v = vertices.get(j);
-                if(v.getNome().equals(oldName) ){
-                    v.setNome(newName);
-                    v.setCompartilhada(sharv);
+                if(v.getNome().contains(oldName) ){
+                    v.setNome(v.getNome().replace(oldName, newName));
                 }
             }
         }
-        for(int i=0;i<trace.getBoxes().size();i++){
-            AcaoCheckBox box = trace.getBoxes().get(i);
-            if(box.getAcao().getNome().equals(oldName)){
-                box.getAcao().setName(newName);
-                box.getBox().setText(box.getBox().getText().replace(oldName, newName));
-                box.getAcao().setCompartilhada(sharb);
+        for(int i=0;i<pthreadArray.size();i++){
+            ArrayList<Processo> p = pthreadArray.get(i).getProcessos();
+            for(int j=0;j<p.size();j++){
+                ArrayList<Acao> a = p.get(j).getAcoes();
+                for(int k=0;k<a.size();k++){
+                    if(a.get(k).getNome().contains(oldName)){
+                        a.get(k).setNome(a.get(k).getNome().replace(oldName, newName));
+                    }
+                }
+            }
+        }
+    }
+
+    public void addCheckBox(ProcessThread process, HiperGrafo hg){
+        ArrayList<Processo> p = process.getProcessos();
+        for(int i=0;i<p.size();i++){
+            ArrayList<Acao> acoes = p.get(i).getAcoes();
+            for(int j=0;j<acoes.size();j++){
+                trace.addCheckBox(acoes.get(j), hg);
             }
         }
     }
@@ -348,14 +366,12 @@ public class Parser {
 	}
 
 	void SynErr (int n) {
-		String s = errors.SynErr(la.line, la.col, n);
-		if (errDist >= minErrDist) ig.output_area.setText(ig.output_area.getText()+""+s+(s.equals("") ? "":"\n"));
+		if (errDist >= minErrDist) errors.SynErr(la.line, la.col, n);
 		errDist = 0;
 	}
 
 	public void SemErr (String msg) {
-		String s = errors.SemErr(t.line, t.col, msg);
-		if (errDist >= minErrDist) ig.output_area.setText(ig.output_area.getText()+""+s+(s.equals("") ? "":"\n"));
+		if (errDist >= minErrDist) errors.SemErr(t.line, t.col, msg);
 		errDist = 0;
 	}
 	
@@ -420,7 +436,7 @@ public class Parser {
 			range_declaration();
 		} else if (la.kind == 16) {
 			composite_process();
-		} else SynErr(44);
+		} else SynErr(43);
 	}
 
 	void primitive_process() {
@@ -457,7 +473,7 @@ public class Parser {
 			Get();
 			primitive_process_body();
 			Expect(9);
-		} else SynErr(45);
+		} else SynErr(44);
 		if(la.val.equals(".")){
 		   newThread();
 		}
@@ -466,7 +482,7 @@ public class Parser {
 			Get();
 		} else if (la.kind == 28) {
 			Get();
-		} else SynErr(46);
+		} else SynErr(45);
 	}
 
 	void constant_declaration() {
@@ -477,7 +493,6 @@ public class Parser {
 		Expect(20);
 		la();
 		Const c = new Const(nome, Integer.parseInt(la.val));
-		p(c.getNome());
 		if(!constArray.contains(c))
 		   constArray.add(c);
 		
@@ -538,6 +553,25 @@ public class Parser {
 			relabels();
 		}
 		Expect(26);
+		ArrayList<HiperGrafo> grafoArray2 = new ArrayList<HiperGrafo>();
+		for(int i=0;i<pthreadArray.size();i++){
+		   for(int j=0;j<pi.size();j++){
+		       if(pthreadArray.get(i).getPrimeiro().getNome().equals(pi.get(j).process)){
+		           ProcessThread p = (ProcessThread) pthreadArray.get(i).clone();
+		           HiperGrafo hg = (HiperGrafo) grafoArray.get(i).clone();
+		           String s = (pi.get(j).share.equals("") ? "" : pi.get(j).share+"." ) + ( pi.get(j).prefix.equals("") ? "" : pi.get(j).prefix + "." );
+		           p.prefix = s;
+		           p.renameAll(s);
+		           hg.renameAll(s);
+		           pthreadArrayInstance.add(p);
+		           grafoArray2.add(hg);
+		           buscaNome(pthreadArrayInstance, grafoArray2);
+		           addCheckBox(p, hg);
+		       }
+		   }
+		}
+		grafoArray = grafoArray2;
+		
 	}
 
 	void expr() {
@@ -585,7 +619,7 @@ public class Parser {
 			Get();
 		} else if (la.kind == 1) {
 			Get();
-		} else SynErr(47);
+		} else SynErr(46);
 	}
 
 	void boolean_expr() {
@@ -751,7 +785,7 @@ public class Parser {
 			hide_label();
 		} else if (la.kind == 31) {
 			expose_label();
-		} else SynErr(48);
+		} else SynErr(47);
 	}
 
 	void hide_label() {
@@ -786,7 +820,7 @@ public class Parser {
 			Get();
 			index();
 			relabel_set();
-		} else SynErr(49);
+		} else SynErr(48);
 	}
 
 	void simple_relabel() {
@@ -797,7 +831,7 @@ public class Parser {
 		String oldName = la.val;
 		
 		action();
-		rename(newName, oldName, -1);
+		rename(newName, oldName);
 		
 	}
 
@@ -844,7 +878,7 @@ public class Parser {
 			} else {
 				Get();
 			}
-		} else SynErr(50);
+		} else SynErr(49);
 	}
 
 	void primitive_process_body() {
@@ -878,12 +912,7 @@ public class Parser {
 		
 		Expect(2);
 		Expect(20);
-		int n = 0;
-		try{
-			n = Integer.parseInt(la.val);
-		}catch(Exception e){
-		}
-		Const c = new Const(nome, n);
+		Const c = new Const(nome, Integer.parseInt(la.val));
 		if(!constArray.contains(c))
 		   constArray.add(c);
 		
@@ -897,7 +926,7 @@ public class Parser {
 			local_process();
 		} else if (la.kind == 38) {
 			condition();
-		} else SynErr(51);
+		} else SynErr(50);
 	}
 
 	void choice() {
@@ -912,7 +941,7 @@ public class Parser {
 			action_set();
 		} else if (la.kind == 3) {
 			action();
-		} else SynErr(52);
+		} else SynErr(51);
 		Expect(33);
 		process_body();
 	}
@@ -935,39 +964,49 @@ public class Parser {
 			composite_conditional();
 		} else if (la.kind == 32) {
 			composite_replicator();
-		} else SynErr(53);
+		} else SynErr(52);
 	}
 
 	void process_instance() {
 		sharing_set = new ArrayList<String>();
-		prefixo = "";
+		prefix = "";
 		
-		if (la.kind == 3 || la.kind == 27) {
-			if (la.kind == 27) {
+		if (la.kind == 27) {
+			Get();
+			sharing_set.add(la.val);
+			Expect(3);
+			while (la.kind == 28) {
 				Get();
 				sharing_set.add(la.val);
-				
 				Expect(3);
-				while (la.kind == 28) {
-					Get();
-					sharing_set.add(la.val);
-					
-					Expect(3);
-				}
-				Expect(41);
-			} else {
-				sharing_set.add(la.val);
-				
-				Get();
-				Expect(42);
 			}
+			Expect(41);
 		}
 		if (la.kind == 3) {
-			prefixo = la.val;
-			
+			prefix = la.val;
 			Get();
 			Expect(24);
 		}
+		try{
+		   boolean flag = true;
+		   for(int i=0;i<pthreadArray.size() && flag;i++){
+		       if(la.val.equals(pthreadArray.get(i).getPrimeiro().getNome()))
+		           flag = false;
+		   }
+		   if(flag)
+		       new Exception();
+		   if(sharing_set.size() > 0){
+		       for(int i=0;i<sharing_set.size();i++){
+		           pi.add(new ProcessInstance(sharing_set.get(i), prefix, la.val));
+		       }
+		   }else{
+		       pi.add(new ProcessInstance("", prefix, la.val));
+		   }
+		}catch(Exception e){
+		   ig.output_area.setText(ig.output_area.getText()+"-- line "+t.line+" col "+t.col+": The action "+la.val+" can not be instantiated\n");
+		   System.exit(1);
+		}
+		
 		Expect(2);
 		if (la.kind == 8) {
 			Get();
@@ -1021,9 +1060,9 @@ public class Parser {
 	}
 
 	private static final boolean[][] set = {
-		{_T,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x},
-		{_x,_x,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _T,_x,_x,_T, _x,_T,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x},
-		{_x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_T,_T, _T,_T,_T,_T, _T,_T,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x}
+		{_T,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x},
+		{_x,_x,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _T,_x,_x,_T, _x,_T,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x},
+		{_x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_T,_T, _T,_T,_T,_T, _T,_T,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x}
 
 	};
 } // end Parser
@@ -1033,9 +1072,8 @@ class Errors {
 	public int count = 0;                                    // number of errors detected
 	public java.io.PrintStream errorStream = System.out;     // error messages go to this stream
 	public String errMsgFormat = "-- line {0} col {1}: {2}"; // 0=line, 1=column, 2=text
-	public String errorMsg = "";
 	
-	protected String printMsg(int line, int column, String msg) {
+	protected void printMsg(int line, int column, String msg) {
 		StringBuffer b = new StringBuffer(errMsgFormat);
 		int pos = b.indexOf("{0}");
 		if (pos >= 0) { b.delete(pos, pos+3); b.insert(pos, line); }
@@ -1043,10 +1081,10 @@ class Errors {
 		if (pos >= 0) { b.delete(pos, pos+3); b.insert(pos, column); }
 		pos = b.indexOf("{2}");
 		if (pos >= 0) b.replace(pos, pos+3, msg);
-		return b.toString();
+		errorStream.println(b.toString());
 	}
 	
-	public String SynErr (int line, int col, int n) {
+	public void SynErr (int line, int col, int n) {
 		String s;
 		switch (n) {
 			case 0: s = "EOF expected"; break;
@@ -1091,28 +1129,26 @@ class Errors {
 			case 39: s = "\"then\" expected"; break;
 			case 40: s = "\"else\" expected"; break;
 			case 41: s = "\"}::\" expected"; break;
-			case 42: s = "\"::\" expected"; break;
-			case 43: s = "??? expected"; break;
-			case 44: s = "invalid start"; break;
+			case 42: s = "??? expected"; break;
+			case 43: s = "invalid start"; break;
+			case 44: s = "invalid primitive_process"; break;
 			case 45: s = "invalid primitive_process"; break;
-			case 46: s = "invalid primitive_process"; break;
-			case 47: s = "invalid factor"; break;
-			case 48: s = "invalid label_visibility"; break;
-			case 49: s = "invalid relabel"; break;
-			case 50: s = "invalid local_process"; break;
-			case 51: s = "invalid process_body"; break;
-			case 52: s = "invalid choice"; break;
-			case 53: s = "invalid composite_body"; break;
+			case 46: s = "invalid factor"; break;
+			case 47: s = "invalid label_visibility"; break;
+			case 48: s = "invalid relabel"; break;
+			case 49: s = "invalid local_process"; break;
+			case 50: s = "invalid process_body"; break;
+			case 51: s = "invalid choice"; break;
+			case 52: s = "invalid composite_body"; break;
 			default: s = "error " + n; break;
 		}
+		printMsg(line, col, s);
 		count++;
-		if(s.contains("invalid")) return "";
-		return printMsg(line, col, s);
 	}
 
-	public String SemErr (int line, int col, String s) {	
+	public void SemErr (int line, int col, String s) {	
+		printMsg(line, col, s);
 		count++;
-		return printMsg(line, col, s);
 	}
 	
 	public void SemErr (String s) {
@@ -1120,8 +1156,8 @@ class Errors {
 		count++;
 	}
 	
-	public String Warning (int line, int col, String s) {	
-		return printMsg(line, col, s);
+	public void Warning (int line, int col, String s) {	
+		printMsg(line, col, s);
 	}
 	
 	public void Warning (String s) {

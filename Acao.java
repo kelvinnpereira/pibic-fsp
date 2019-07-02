@@ -80,8 +80,8 @@ public class Acao{
         this.estado = e;
     }
 
-    public void setName(String name){
-        this.nome = name;
+    public void setNome(String nome){
+        this.nome = nome;
     }
 
     public ProcessoLocal getPl(){
@@ -108,4 +108,15 @@ public class Acao{
     public String toString(){
         return nome + "["+valor_indice+"], id:  "+id+", estado: "+estado+", "+processo.toString()+", shared: "+compartilhada;
     }
+
+    public Object clone(){
+        Acao a = new Acao(nome, processo, indice, valor_indice, estado);
+        a.expressao = this.expressao;
+        a.pl = this.pl;
+        a.inicio = this.inicio;
+        a.compartilhada = this.compartilhada;
+        a.id = this.id;
+        return a;
+    }
+
 }

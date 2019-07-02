@@ -8,6 +8,7 @@ public class ProcessThread{
 	private ArrayList<Acao> traceArray;
 	private ArrayList<Acao> shared;
 	private Processo primeiro;
+	String prefix;
 
 	ProcessThread(ArrayList<Processo> processos, ArrayList<Const> constArray, ArrayList<Range> rangeArray, Processo primeiro){
 		this.processos = processos;
@@ -16,6 +17,7 @@ public class ProcessThread{
 		this.traceArray = new ArrayList<Acao>();
 		this.shared = new ArrayList<Acao>();
 		this.primeiro = primeiro;
+		prefix = "";
 	}
 
 	public ArrayList<Processo> getProcessos(){
@@ -42,5 +44,22 @@ public class ProcessThread{
 		return this.shared;
 	}
 
+	public Object clone(){
+		ArrayList<Processo> p = new ArrayList<Processo>();
+		ProcessThread pt = new ProcessThread(p , constArray, rangeArray, primeiro);
+		for(int i=0;i<processos.size();i++)
+			p.add((Processo)processos.get(i).clone());
+		return pt;
+	}
+
+	public void renameAll(String prefix){
+		ArrayList<Processo> p = this.getProcessos();
+        for(int i=0;i<p.size();i++){
+            ArrayList<Acao> acoes = p.get(i).getAcoes();
+            for(int j=0;j<acoes.size();j++){
+                acoes.get(j).setNome(prefix+acoes.get(j).getNome());
+            }
+        }
+	}
 
 }

@@ -27,6 +27,10 @@ public class Geracao{
 		return this.pthreadArray;
 	}
 
+	public void setPthreadArray(ArrayList<ProcessThread> pthreadArray){
+		this.pthreadArray = pthreadArray;
+	}
+
 	public void setCPN(String nome){
 		this.composite_process_name = nome;
 	}
@@ -118,7 +122,7 @@ public class Geracao{
 		        ArrayList<Processo> processos = pthreadArray.get(cont).getProcessos();
 
 				/*cria um arquivo .java com o nome do processo.*/
-				String nomeP = main.getNome()+(main.getEstado() == -1 ? "": "_"+main.getEstado());
+				String nomeP = pthreadArray.get(cont).prefix.replace(".", "_") + main.getNome()+(main.getEstado() == -1 ? "": "_"+main.getEstado());
 				file = new File("Generated/"+nomeP+".java");
 				arquivos.add(file);
 				buff = new BufferedWriter(new FileWriter(file));
@@ -135,7 +139,7 @@ public class Geracao{
 					for(int j=0;j<acoes.size();j++){
 						if(acoes.get(j).getCompartilhada() && !acoes.get(j).getNome().equals("STOP") && !acoes.get(j).getNome().equals("ERROR")){
 							buff.append(
-								"    Monitor "+acoes.get(j).getNome()+"_shared;\n\n"
+								"    Monitor "+acoes.get(j).getNome().replace(".", "_")+"_shared;\n\n"
 							);
 							shared.add(acoes.get(j));
 							pthreadArray.get(cont).getShared().add(acoes.get(j));
@@ -149,14 +153,14 @@ public class Geracao{
 				);
 				for(i=last_index_shared;i<shared.size();i++){
 					if(i == shared.size() -1)
-						buff.append("Monitor "+shared.get(i).getNome()+"_shared");
+						buff.append("Monitor "+shared.get(i).getNome().replace(".", "_")+"_shared");
 					else
-						buff.append("Monitor "+shared.get(i).getNome()+"_shared, ");
+						buff.append("Monitor "+shared.get(i).getNome().replace(".", "_")+"_shared, ");
 				}
 				buff.append("){\n");
 				for(i=last_index_shared;i<shared.size();i++){
 					buff.append(
-						"        this."+shared.get(i).getNome()+"_shared = "+shared.get(i).getNome()+"_shared;\n"
+						"        this."+shared.get(i).getNome().replace(".", "_")+"_shared = "+shared.get(i).getNome().replace(".", "_")+"_shared;\n"
 					);
 				}
 				buff.append(
@@ -175,18 +179,19 @@ public class Geracao{
 		            	if(!acoes.get(j).getNome().equals("STOP") && !acoes.get(j).getNome().equals("ERROR")){
 			                String nomeA = acoes.get(j).getNome()+(acoes.get(j).getValorIndice() == -1 ? "": "_"+acoes.get(j).getValorIndice());
 			                nomeA += acoes.get(j).getId() == -1 ? "": "_"+acoes.get(j).getId();
+							nomeA += acoes.get(j).getEstado() == -1 ? "": "_"+acoes.get(j).getEstado();
 							if(acoes.get(j).getCompartilhada()){
 								buff.append(
-									"    public synchronized void "+nomeA+"()throws InterruptedException{\n"+
-									"        "+acoes.get(j).getNome()+"_shared.dec();\n"+
-									"        if("+acoes.get(j).getNome()+"_shared.inc())\n"+
+									"    public synchronized void "+nomeA.replace(".", "_")+"()throws InterruptedException{\n"+
+									"        "+acoes.get(j).getNome().replace(".", "_")+"_shared.dec();\n"+
+									"        if("+acoes.get(j).getNome().replace(".", "_")+"_shared.inc())\n"+
 									"            System.out.println(\""+acoes.get(j).getNome()+
 											(acoes.get(j).getValorIndice() != -1 ? "["+acoes.get(j).getValorIndice()+"]":"")+"\");\n"+
 									"    }\n\n"
 								);
 							}else{
 								buff.append(
-									"    public void "+nomeA+"(){\n"+
+									"    public void "+nomeA.replace(".", "_")+"(){\n"+
 									"        System.out.println(\""+acoes.get(j).getNome()+
 											(acoes.get(j).getValorIndice() != -1 ? "["+acoes.get(j).getValorIndice()+"]":"")+"\");\n"+
 									"    }\n\n"
@@ -210,8 +215,9 @@ public class Geracao{
 			            nomeP += (traceArray.get(i).getProcesso().getEstado() == -1 ? "" : "_"+traceArray.get(i).getProcesso().getEstado());
 			            String nomeA = traceArray.get(i).getNome()+(traceArray.get(i).getValorIndice() == -1 ? "" : "_"+traceArray.get(i).getValorIndice());
 			            nomeA += traceArray.get(i).getId() == -1 ? "": "_"+traceArray.get(i).getId();
+						nomeA += traceArray.get(i).getEstado() == -1 ? "": "_"+traceArray.get(i).getEstado();
 			            buff.append(
-			                "                "+nomeA+"();\n"+
+			                "                "+nomeA.replace(".", "_")+"();\n"+
 			                "                Thread.sleep(1000);\n"
 			            );
 			        }else if(traceArray.get(i).getNome().equals("STOP")){
@@ -241,17 +247,17 @@ public class Geracao{
 			for(int i=0;i<shared.size();i++){
 				if(shared.get(i) != null){
 					String nome = shared.get(i).getNome();
-					buffMain.append("        Monitor "+nome+"_shared = new Monitor("+conta(nome)+");\n");
+					buffMain.append("        Monitor "+nome.replace(".", "_")+"_shared = new Monitor("+conta(nome)+");\n");
 				}
 			}
 			for(int i=0;i<pthreadArray.size();i++){
 				Processo p = pthreadArray.get(i).getProcessos().get(0);
-				String nome = p.getNome();
+				String nome = pthreadArray.get(i).prefix.replace(".", "_") + p.getNome();
 				buffMain.append(
 					"        "+nome+" obj_"+nome.toLowerCase()+" = new "+nome+"("
 				);
 				for(int j=0;j<pthreadArray.get(i).getShared().size();j++){
-					String nomeA = pthreadArray.get(i).getShared().get(j).getNome();
+					String nomeA = pthreadArray.get(i).getShared().get(j).getNome().replace(".", "_");
 					if(j == pthreadArray.get(i).getShared().size()-1)
 						buffMain.append(nomeA+"_shared");
 					else
@@ -265,7 +271,6 @@ public class Geracao{
 			);
 			buffMain.close();
 			file = new File("Generated/Monitor.java");
-			arquivos.add(file);
 			buffMain = new BufferedWriter(new FileWriter(file));
 			buffMain.append(
 				"class Monitor{\n\n"+
@@ -294,6 +299,7 @@ public class Geracao{
 			buffMain.close();
 	    }catch(Exception e){
 	        System.out.println("Execessao: "+e.toString());
+			e.printStackTrace();
 	    }
 	}
 

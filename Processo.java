@@ -32,6 +32,10 @@ public class Processo{
         return this.acoes;
     }
 
+    public void setAcoes(ArrayList<Acao> acoes){
+        this.acoes = acoes;
+    }
+
     public ArrayList<Acao> getAcoesAtuais(){
         return this.acoes_atuais;
     }
@@ -42,6 +46,10 @@ public class Processo{
 
     public String getNome(){
         return this.nome;
+    }
+
+    public void setNome(String nome){
+        this.nome = nome;
     }
 
     public Range getRange(){
@@ -80,6 +88,20 @@ public class Processo{
         for(int i=0;i<acoes.size();i++){
             System.out.println(acoes.get(i));
         }
+    }
+
+    public void addPrefix(String prefix){
+
+    }
+
+    public Object clone(){
+        Processo p = new Processo(nome, indice, estado, range);
+        ArrayList<Acao> a = new ArrayList<Acao>();
+        for(int i=0;i<acoes.size();i++){
+            a.add((Acao)acoes.get(i).clone());
+        }
+        p.setAcoes(a);
+        return p;
     }
 
 }
