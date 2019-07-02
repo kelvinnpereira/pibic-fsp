@@ -55,7 +55,7 @@ COMPILER FSP $F
     public void newThread(){
         finalizaGrafo();
         pthreadArray.add(new ProcessThread(processos, constArray, rangeArray, primeiro_atual));
-        if(errors.count > 0) System.exit(1);
+        //if(errors.count > 0) System.exit(1);
         init();
     }
 
@@ -377,7 +377,9 @@ factor =
 
 (.
     if(la.val.charAt(0) >= 'A' && la.val.charAt(0) <= 'Z' )
-        expressao += ""+constArray.get(constArray.indexOf(new Const(la.val, 0))).getValor();
+        try{
+            expressao += ""+constArray.get(constArray.indexOf(new Const(la.val, 0))).getValor();
+        }catch(Exception){}
     else
         expressao += la.val;
 .) 
@@ -434,7 +436,12 @@ uppercase_id "="
 
 (.
     la();
-    Const c = new Const(nome, Integer.parseInt(la.val));
+    int n = 0;
+    try{
+        n = Integer.parseInt(la.val);
+    }catch(Exception e){
+    }
+    Const c = new Const(nome, n);
     if(!constArray.contains(c))
         constArray.add(c);
 .)
@@ -662,7 +669,12 @@ parameter =
 uppercase_id "=" 
 
 (.
-    Const c = new Const(nome, Integer.parseInt(la.val));
+    int n = 0;
+    try{
+        n = Integer.parseInt(la.val);
+    }catch(Exception e){
+    }
+    Const c = new Const(nome, n);
     if(!constArray.contains(c))
         constArray.add(c);
 .)

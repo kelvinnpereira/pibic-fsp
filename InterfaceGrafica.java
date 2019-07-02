@@ -1,4 +1,7 @@
 import javax.swing.*;
+import javax.swing.event.*;
+import javax.swing.text.*;
+import javax.swing.text.html.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
@@ -6,6 +9,7 @@ import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.net.URL;
 
 class Trace{
 
@@ -222,11 +226,13 @@ public class InterfaceGrafica{
     JMenu fileMenu, helpMenu;
     JMenuItem newAction, openAction, helpAction, saveAction;
     JTabbedPane tabbedPane;
-    JPanel editor, output, form;
+    JPanel editor, output, form, help;
     JTextArea editor_area, nome, matricula, output_area;
     JScrollPane scroll_editor_area, scroll_output_area;
     JButton compile, tracing;
     Parser parser;
+    JEditorPane edit;
+    ArrayList<URL> urlArray = new ArrayList<URL>();
 
     InterfaceGrafica(){
         Font font = new Font("Dialog", Font.BOLD, 16);
@@ -248,6 +254,7 @@ public class InterfaceGrafica{
         helpMenu = new JMenu("Help");
         helpMenu.setFont(font);
         helpAction = new JMenuItem("Help");
+        helpAction.addActionListener(new ListenerHelp());
         helpAction.setFont(font);
 
         fileMenu.add(newAction);
@@ -421,10 +428,43 @@ public class InterfaceGrafica{
         }
     }
 
+    private class ListenerLink extends MouseAdapter{
+        public void mousePressed(MouseEvent e){
+            try{
+                Point pt = new Point(e.getX(), e.getY());
+                JEditorPane edit_pane = (JEditorPane) e.getSource();
+                int pos = edit_pane.viewToModel(pt);
+                if(pos < 0) return;
+                Document doc = edit_pane.getDocument();
+                HTMLDocument hdoc = (HTMLDocument) doc;
+                Element elem = hdoc.getCharacterElement(pos);
+                AttributeSet a = elem.getAttributes();
+                AttributeSet anchor = (AttributeSet) a.getAttribute(HTML.Tag.A);
+                String href = (anchor != null) ? (String) anchor.getAttribute(HTML.Attribute.HREF) : null;
+                if (href != null) {
+                    edit.setPage(new URL("file:"+System.getProperty("user.dir")+"/help/"+href));
+                }
+            }catch(Exception ex){
+                System.out.println(ex);
+            }
+        }
+    }
+
     private class ListenerHelp implements ActionListener{
         public void actionPerformed(ActionEvent e){
             try{
-                
+                if(tabbedPane.getTabCount() == 3) tabbedPane.remove(2);
+                help = new JPanel();
+                help.setLayout(null);
+                edit = new JEditorPane();
+                edit.setEditable(false);
+                edit.setPage(new URL("file:"+System.getProperty("user.dir")+"/help/help.html"));
+                edit.addMouseListener(new ListenerLink());
+                JScrollPane editorScrollPane = new JScrollPane(edit);
+                editorScrollPane.setBounds(5, 5, 880, 380);
+                help.add(editorScrollPane);
+                tabbedPane.add("Help", help);
+                tabbedPane.setSelectedIndex(2);
             }catch(Exception ex){
                 System.out.println(ex);
             }

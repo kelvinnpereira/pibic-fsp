@@ -74,7 +74,7 @@ public class Parser {
     public void newThread(){
         finalizaGrafo();
         pthreadArray.add(new ProcessThread(processos, constArray, rangeArray, primeiro_atual));
-        if(errors.count > 0) System.exit(1);
+        //if(errors.count > 0) System.exit(1);
         init();
     }
 
@@ -366,12 +366,16 @@ public class Parser {
 	}
 
 	void SynErr (int n) {
-		if (errDist >= minErrDist) errors.SynErr(la.line, la.col, n);
+		String s = errors.SynErr(la.line, la.col, n);
+		if (errDist >= minErrDist) 
+			ig.output_area.setText(ig.output_area.getText()+""+s+(s.equals("") ? "":"\n"));
 		errDist = 0;
 	}
 
 	public void SemErr (String msg) {
-		if (errDist >= minErrDist) errors.SemErr(t.line, t.col, msg);
+		String s = errors.SemErr(t.line, t.col, msg);
+		if (errDist >= minErrDist) 
+			ig.output_area.setText(ig.output_area.getText()+""+s+(s.equals("") ? "":"\n"));
 		errDist = 0;
 	}
 	
@@ -492,7 +496,12 @@ public class Parser {
 		Expect(2);
 		Expect(20);
 		la();
-		Const c = new Const(nome, Integer.parseInt(la.val));
+		int n = 0;
+		try{
+			n = Integer.parseInt(la.val);
+		}catch(Exception e){
+		}
+		Const c = new Const(nome, n);
 		if(!constArray.contains(c))
 		   constArray.add(c);
 		
@@ -602,7 +611,9 @@ public class Parser {
 
 	void factor() {
 		if(la.val.charAt(0) >= 'A' && la.val.charAt(0) <= 'Z' )
-		   expressao += ""+constArray.get(constArray.indexOf(new Const(la.val, 0))).getValor();
+			try{
+		   		expressao += ""+constArray.get(constArray.indexOf(new Const(la.val, 0))).getValor();
+			}catch(Exception e){}
 		else
 		   expressao += la.val;
 		
@@ -912,7 +923,12 @@ public class Parser {
 		
 		Expect(2);
 		Expect(20);
-		Const c = new Const(nome, Integer.parseInt(la.val));
+		int n = 0;
+		try{
+			n = Integer.parseInt(la.val);
+		}catch(Exception e){
+		}
+		Const c = new Const(nome, n);
 		if(!constArray.contains(c))
 		   constArray.add(c);
 		
@@ -1072,8 +1088,9 @@ class Errors {
 	public int count = 0;                                    // number of errors detected
 	public java.io.PrintStream errorStream = System.out;     // error messages go to this stream
 	public String errMsgFormat = "-- line {0} col {1}: {2}"; // 0=line, 1=column, 2=text
-	
-	protected void printMsg(int line, int column, String msg) {
+	public String errorMsg = "";
+
+	protected String printMsg(int line, int column, String msg) {
 		StringBuffer b = new StringBuffer(errMsgFormat);
 		int pos = b.indexOf("{0}");
 		if (pos >= 0) { b.delete(pos, pos+3); b.insert(pos, line); }
@@ -1081,10 +1098,10 @@ class Errors {
 		if (pos >= 0) { b.delete(pos, pos+3); b.insert(pos, column); }
 		pos = b.indexOf("{2}");
 		if (pos >= 0) b.replace(pos, pos+3, msg);
-		errorStream.println(b.toString());
+		return b.toString();
 	}
 	
-	public void SynErr (int line, int col, int n) {
+	public String SynErr (int line, int col, int n) {
 		String s;
 		switch (n) {
 			case 0: s = "EOF expected"; break;
@@ -1142,13 +1159,13 @@ class Errors {
 			case 52: s = "invalid composite_body"; break;
 			default: s = "error " + n; break;
 		}
-		printMsg(line, col, s);
 		count++;
+		return printMsg(line, col, s);
 	}
 
-	public void SemErr (int line, int col, String s) {	
-		printMsg(line, col, s);
+	public String SemErr (int line, int col, String s) {	
 		count++;
+		return printMsg(line, col, s);
 	}
 	
 	public void SemErr (String s) {
@@ -1156,8 +1173,8 @@ class Errors {
 		count++;
 	}
 	
-	public void Warning (int line, int col, String s) {	
-		printMsg(line, col, s);
+	public String Warning (int line, int col, String s) {	
+		return printMsg(line, col, s);
 	}
 	
 	public void Warning (String s) {
