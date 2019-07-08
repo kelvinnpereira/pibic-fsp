@@ -5,7 +5,7 @@ public class Vertice{
     private ArrayList<Aresta> arestas;
     private String nome;
     private int id, estado, valor_indice;
-    private boolean compartilhada;
+    private boolean compartilhada, trava;
 
     Vertice(){
     }
@@ -54,6 +54,14 @@ public class Vertice{
     public void insereAresta(Aresta a){
         if(a == null) return;
         arestas.add(a);
+    }
+
+    public boolean getTrava(){
+        return this.trava;
+    }
+
+    public void setTrava(boolean val){
+        this.trava = val;
     }
 
     public String toString(){

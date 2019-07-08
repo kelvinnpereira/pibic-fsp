@@ -44,6 +44,14 @@ public class ProcessThread{
 		return this.shared;
 	}
 
+	public boolean getTrava(){
+        return this.trava;
+    }
+
+    public void setTrava(boolean val){
+        this.trava = val;
+    }
+
 	public Object clone(){
 		ArrayList<Processo> p = new ArrayList<Processo>();
 		ProcessThread pt = new ProcessThread(p , constArray, rangeArray, primeiro);
@@ -52,12 +60,13 @@ public class ProcessThread{
 		return pt;
 	}
 
-	public void renameAll(String prefix){
+	public void renameAll(String prefix, boolean trava){
 		ArrayList<Processo> p = this.getProcessos();
         for(int i=0;i<p.size();i++){
             ArrayList<Acao> acoes = p.get(i).getAcoes();
             for(int j=0;j<acoes.size();j++){
                 acoes.get(j).setNome(prefix+acoes.get(j).getNome());
+				acoes.get(j).setTrava(trava);
             }
         }
 	}

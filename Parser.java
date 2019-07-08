@@ -570,8 +570,8 @@ public class Parser {
 		           HiperGrafo hg = (HiperGrafo) grafoArray.get(i).clone();
 		           String s = (pi.get(j).share.equals("") ? "" : pi.get(j).share+"." ) + ( pi.get(j).prefix.equals("") ? "" : pi.get(j).prefix + "." );
 		           p.prefix = s;
-		           p.renameAll(s);
-		           hg.renameAll(s);
+		           p.renameAll(s, !pi.get(j).share.equals(""));
+		           hg.renameAll(s, !pi.get(j).share.equals(""));
 		           pthreadArrayInstance.add(p);
 		           grafoArray2.add(hg);
 		           buscaNome(pthreadArrayInstance, grafoArray2);

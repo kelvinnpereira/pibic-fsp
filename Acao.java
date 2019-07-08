@@ -6,7 +6,7 @@ public class Acao{
     private ArrayList<Acao> acoes_atuais;
     private Processo processo;
     private ProcessoLocal pl;
-    private boolean inicio, compartilhada;
+    private boolean inicio, compartilhada, trava;
     private int id, estado, valor_indice;
 
     Acao(String nome, Processo processo){
@@ -98,6 +98,14 @@ public class Acao{
 
     public void setCompartilhada(boolean val){
         this.compartilhada = val;
+    }
+
+    public boolean getTrava(){
+        return this.trava;
+    }
+
+    public void setTrava(boolean val){
+        this.trava = val;
     }
 
     public boolean equals(Object o){
