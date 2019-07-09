@@ -211,8 +211,6 @@ public class Geracao{
 				traceArray = pthreadArray.get(cont).getTraceArray();
 		        for(i=0;i<traceArray.size();i++){
 		        	if(!traceArray.get(i).getNome().equals("STOP") && !traceArray.get(i).getNome().equals("ERROR")){
-			            nomeP = traceArray.get(i).getProcesso().getNome().toLowerCase();
-			            nomeP += (traceArray.get(i).getProcesso().getEstado() == -1 ? "" : "_"+traceArray.get(i).getProcesso().getEstado());
 			            String nomeA = traceArray.get(i).getNome()+(traceArray.get(i).getValorIndice() == -1 ? "" : "_"+traceArray.get(i).getValorIndice());
 			            nomeA += traceArray.get(i).getId() == -1 ? "": "_"+traceArray.get(i).getId();
 						nomeA += traceArray.get(i).getEstado() == -1 ? "": "_"+traceArray.get(i).getEstado();

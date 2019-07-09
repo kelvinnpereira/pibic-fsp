@@ -115,6 +115,14 @@ class Trace{
             for(int i=0;i<grafoArray.size();i++){
                 Vertice v = grafoArray.get(i).inAtual(box.getText());
                 if(v != null){
+                    generator.getPthreadArray().get(i).getTraceArray().add(new Acao(v.getNome(), null, "", v.getValorIndice(), v.getEstado()));
+                    Vertice  stop_error = v.only();
+                    if(stop_error != null){
+                        generator.getPthreadArray().get(i).getTraceArray().add(new Acao(stop_error.getNome(), null));
+                        text_area.setText(text_area.getText()+""+stop_error.getNome()+"\n");
+                        last = stop_error.getNome();
+                        return;
+                    }
                     grafoArray.get(i).setAtual(new ArrayList<Vertice>());
                     ArrayList<Aresta> arestas = v.getArestas();
                     for(int j=0;j<arestas.size();j++){
@@ -123,27 +131,13 @@ class Trace{
                             grafoArray.get(i).getAtual().add(vertices.get(k));
                         }
                     }
+                    if(atualizaInterface(v)){
+                        disableAll();
+                        break;
+                    }
                 }
             }
-    		for(int i=0;i<boxes.size();i++){
-    			if(e.getSource() == boxes.get(i).getBox()){
-	        		text_area.setText(text_area.getText()+""+boxes.get(i).getBox().getText()+"\n");
-                    last = boxes.get(i).getBox().getText();
-                    generator.getPthreadArray().get(indexGrafo(boxes.get(i).getGrafo())).getTraceArray().add(boxes.get(i).getAcao());
-                    if(atualizaInterface(boxes.get(i))){
-                        disableAll();
-                        break;
-                    }
-                }else if(box.getAcao().getCompartilhada() && boxes.get(i).getAcao().getNome().equals(box.getAcao().getNome())){
-                    boxes.get(i).getBox().setEnabled(false);
-                    boxes.get(i).getBox().setSelected(false);
-                    generator.getPthreadArray().get(indexGrafo(boxes.get(i).getGrafo())).getTraceArray().add(boxes.get(i).getAcao());
-                    if(atualizaInterface(boxes.get(i))){
-                        disableAll();
-                        break;
-                    }
-                }
-    		}
+            last = box.getText();
 	    }
     }
 
@@ -173,32 +167,21 @@ class Trace{
         return this.boxes;
     }
 
-    /*private boolean atualizaInterface(AcaoCheckBox box){
+    private boolean atualizaInterface(Vertice vertice){
         HiperGrafo grafo;
-        Acao a = box.getAcao();
         for(int cont=0;cont<grafoArray.size();cont++){
-            if(box.getGrafo() == grafoArray.get(cont)){
-                grafo = grafoArray.get(cont);
-                Vertice v = grafo.busca(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice()), stop_error = v.only();
-                if(stop_error != null){
-                    generator.getPthreadArray().get(indexGrafo(box.getGrafo())).getTraceArray().add(new Acao(stop_error.getNome(), null));
-                    text_area.setText(text_area.getText()+""+stop_error.getNome()+"\n");
-                    last = stop_error.getNome();
-                    return true;
-                }
-                for(int i=0;i<boxes.size();i++){
-                    ArrayList<Aresta> arestas = v.getArestas();
-                    for(int j=0;j<arestas.size();j++){
-                        ArrayList<Vertice> vertices = arestas.get(j).getVertices();
-                        for(int k=0;k<vertices.size();k++){
-                            a = boxes.get(i).getAcao();                    
-                            if(boxes.get(i).getGrafo() == grafo && a.getNome().equals(vertices.get(k).getNome()) && a.getId() == vertices.get(k).getId() && a.getEstado() == vertices.get(k).getEstado() && a.getValorIndice() == vertices.get(k).getValorIndice()){
-                                if(vertices.get(k).getCompartilhada()){
-                                    boxes.get(i).setCompartilhada(true);
-                                    if(allAcao(boxes.get(i).getAcao().getNome())) boxes.get(i).getBox().setEnabled(true);
-                                }else{
-                                    boxes.get(i).getBox().setEnabled(true);
-                                }
+            grafo = grafoArray.get(cont);
+            for(int i=0;i<grafo.getAtual().size();i++){
+                ArrayList<Aresta> arestas = v.getArestas();
+                for(int j=0;j<arestas.size();j++){
+                    ArrayList<Vertice> vertices = arestas.get(j).getVertices();
+                    for(int k=0;k<vertices.size();k++){
+                        a = boxes.get(i).getAcao();                    
+                        if(boxes.get(i).getGrafo() == grafo && a.getNome().equals(vertices.get(k).getNome()) && a.getId() == vertices.get(k).getId() && a.getEstado() == vertices.get(k).getEstado() && a.getValorIndice() == vertices.get(k).getValorIndice()){
+                            if(vertices.get(k).getCompartilhada()){
+                                if(allAcao(boxes.get(i).getAcao().getNome())) boxes.get(i).getBox().setEnabled(true);
+                            }else{
+                                boxes.get(i).setEnabled(true);
                             }
                         }
                     }
@@ -206,7 +189,11 @@ class Trace{
             }
         }
         return false;
-    }*/
+    }
+
+    public boolean allAcao(Strin nome){
+
+    }
 
     public void addCheckBox(String nome){
         if(nome.equals("STOP") || nome.equals("ERROR")) return;
