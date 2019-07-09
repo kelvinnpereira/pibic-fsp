@@ -44,14 +44,6 @@ public class ProcessThread{
 		return this.shared;
 	}
 
-	public boolean getTrava(){
-        return this.trava;
-    }
-
-    public void setTrava(boolean val){
-        this.trava = val;
-    }
-
 	public Object clone(){
 		ArrayList<Processo> p = new ArrayList<Processo>();
 		ProcessThread pt = new ProcessThread(p , constArray, rangeArray, primeiro);

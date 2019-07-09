@@ -4,26 +4,37 @@ public class HiperGrafo{
 
     private ArrayList<Vertice> vertices;
     private ArrayList<Aresta> arestas;
+    private ArrayList<Vertice> atual;
 
     public HiperGrafo() {
         this.vertices = new ArrayList<Vertice>();
         this.arestas = new ArrayList<Aresta>();
+        this.atual = new ArrayList<Vertice>();
     }
 
     public ArrayList<Vertice> getVertices(){
         return this.vertices;
     }
 
+    public ArrayList<Vertice> getAtual(){
+        return this.atual;
+    }
+
+    public void setAtual(ArrayList<Vertice> atual){
+        this.atual = atual;
+    }
+
     public ArrayList<Aresta> getAresta(){
         return this.arestas;
     }
 
-    public Vertice insereVertice(String nome, int id, int estado, int valor_indice){
+    public Vertice insereVertice(String nome, int id, int estado, int valor_indice, boolean inicio){
         if(nome == null) return null;
         Vertice existe = busca(nome, id, estado, valor_indice);
         if(existe != null) return existe;
         Vertice v = new Vertice(nome, id, estado, valor_indice);
         vertices.add(v);
+        if(inicio) atual.add(v);
         return v;
     }
 
@@ -92,6 +103,9 @@ public class HiperGrafo{
         String str = "";
         for(int i=0;i<vertices.size();i++)
             str += vertices.get(i).toString() + "\n\n\n";
+        str += "\n--------------atual--------------------\n";
+        for(int i=0;i<atual.size();i++)
+            str += atual.get(i).toString() + "\n\n\n";
         return str;
     }
 
@@ -99,7 +113,11 @@ public class HiperGrafo{
         HiperGrafo hg = new HiperGrafo();
         for(int i=0;i<this.vertices.size();i++){
             Vertice v = this.vertices.get(i);
-            hg.insereVertice(v.getNome(), v.getId(), v.getEstado(), v.getValorIndice());
+            hg.insereVertice(v.getNome(), v.getId(), v.getEstado(), v.getValorIndice(), false);
+        }
+        for(int i=0;i<this.atual.size();i++){
+            Vertice v = this.atual.get(i);
+            hg.atual.add(hg.busca(v.getNome(), v.getId(), v.getEstado(), v.getValorIndice()));
         }
         for(int i=0;i<this.vertices.size();i++){
             ArrayList<Aresta> a = this.vertices.get(i).getArestas();
@@ -120,6 +138,16 @@ public class HiperGrafo{
             v.get(i).setNome(prefix+v.get(i).getNome());
             v.get(i).setTrava(trava);
         }
+    }
+
+    public Vertice inAtual(String nome){
+        ArrayList<Integer> int_list = new ArrayList<Integer>();
+        for(int i=0;i<atual.size();i++){
+            if(atual.get(i).getBoxName().equals(nome)) int_list.add(i);
+        }
+        int max = int_list.size()-1, min = 0;
+        int i = (int)(Math.random() * ((max - min) + 1)) + min;
+        return int_list.size() == 0 ? null : atual.get(int_list.get(i));
     }
 
 }

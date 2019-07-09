@@ -81,7 +81,7 @@ public class Parser {
     public void startInterface(){
         if(pthreadArray.size() == 1) {
             generator.setPthreadArray(pthreadArray);
-            addCheckBox(pthreadArray.get(0), grafoArray.get(0));
+            addCheckBox(pthreadArray.get(0));
         }
         trace.setGrafoArray(grafoArray);
         trace.setGenerator(generator);
@@ -242,7 +242,7 @@ public class Parser {
     	Acao a = null;
     	if(exprBool(tiraIndice(bool, pa.getIndice(), pa.getEstado()+""))){
 	    	a = novaAcao(nome, indice, valor_indice, pa.getEstado(), pa);
-	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice());
+	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice(), acao_inicio);
 	        ArrayList<Acao> acoes_atuais = pa.getAcoesAtuais();
 	        if(acao_inicio){
 	        	a.setInicio(true);
@@ -302,7 +302,7 @@ public class Parser {
             int j = locais.lastIndexOf(pl);
             if(j == -1)
                 locais.add(pl);
-            vertice_atual = grafo.insereVertice(nome, 0, pa.getEstado(), valor_indice);
+            vertice_atual = grafo.insereVertice(nome, 0, pa.getEstado(), valor_indice, acao_inicio);
             ArrayList<Acao> acoes_atuais = pa.getAcoesAtuais();
         	for(int i=0;i<acoes_atuais.size();i++){
                 grafo.insereAdjSimetrica(grafo.busca(acoes_atuais.get(i).getNome(), acoes_atuais.get(i).getId(), acoes_atuais.get(i).getEstado(), acoes_atuais.get(i).getValorIndice()), vertice_atual);
@@ -348,12 +348,13 @@ public class Parser {
         }
     }
 
-    public void addCheckBox(ProcessThread process, HiperGrafo hg){
+    public void addCheckBox(ProcessThread process){
         ArrayList<Processo> p = process.getProcessos();
         for(int i=0;i<p.size();i++){
             ArrayList<Acao> acoes = p.get(i).getAcoes();
             for(int j=0;j<acoes.size();j++){
-                trace.addCheckBox(acoes.get(j), hg);
+				Acao a = acoes.get(j);
+                trace.addCheckBox(a.getNome()+(a.getValorIndice() == -1 ? "" : "["+a.getValorIndice()+"]"));
             }
         }
     }
@@ -575,12 +576,11 @@ public class Parser {
 		           pthreadArrayInstance.add(p);
 		           grafoArray2.add(hg);
 		           buscaNome(pthreadArrayInstance, grafoArray2);
-		           addCheckBox(p, hg);
+		           addCheckBox(p);
 		       }
 		   }
 		}
 		grafoArray = grafoArray2;
-		
 	}
 
 	void expr() {

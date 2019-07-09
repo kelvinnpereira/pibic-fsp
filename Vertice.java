@@ -31,6 +31,10 @@ public class Vertice{
         return this.nome;
     }
 
+    public String getBoxName(){
+        return this.nome+(valor_indice == -1 ? "" : "["+valor_indice+"]");
+    }
+
     public void setNome(String nome){
         this.nome = nome;
     }

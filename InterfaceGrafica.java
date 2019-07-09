@@ -21,11 +21,11 @@ class Trace{
     private ListenerBox listener_box;
     private Geracao generator;
     private ArrayList<HiperGrafo> grafoArray;
-    private ArrayList<AcaoCheckBox> boxes;
+    private ArrayList<JCheckBox> boxes;
     private String last = "";
 
     Trace(){
-        this.boxes = new ArrayList<AcaoCheckBox>();
+        this.boxes = new ArrayList<JCheckBox>();
     }
 
     public void setGenerator(Geracao generator){
@@ -34,6 +34,13 @@ class Trace{
 
     public void setGrafoArray(ArrayList<HiperGrafo> grafoArray){
         this.grafoArray = grafoArray;
+    }
+
+    public boolean inAtual(String nome){
+        for(int i=0;i<grafoArray.size();i++){
+            if(grafoArray.get(i).inAtual(nome) != null) return true;
+        }
+        return false;
     }
     
     public void start_trace(){
@@ -63,19 +70,13 @@ class Trace{
         view.addActionListener(new ListenerView());
     	
     	for(int i=0;i<boxes.size();i++){
-            boxes.get(i).getBox().setEnabled(false);
-            boxes.get(i).getBox().setSelected(false);
-            if(boxes.get(i).getAcao().getInicio() && generator.isPrimeiro(boxes.get(i).getAcao().getProcesso())) {
-                if(boxes.get(i).getAcao().getCompartilhada()){
-                    boxes.get(i).setCompartilhada(true);
-        		    if(allAcao(boxes.get(i).getAcao().getNome()))
-                        boxes.get(i).getBox().setEnabled(true);
-                }else{
-                    boxes.get(i).getBox().setEnabled(true);
-                }
+            JCheckBox box = boxes.get(i);
+            box.setEnabled(false);
+            if( inAtual(box.getText()) ){
+                box.setEnabled(true);
             }
-    		boxes.get(i).getBox().addActionListener(listener_box);
-    		panel.add(boxes.get(i).getBox());
+    		box.addActionListener(listener_box);
+    		panel.add(box);
     	}
 
     	trace.add(scroll_text_area);
@@ -91,8 +92,8 @@ class Trace{
 
     private void disableAll(){
         for(int i=0;i<boxes.size();i++){
-            boxes.get(i).getBox().setEnabled(false);
-            boxes.get(i).getBox().setSelected(false);
+            boxes.get(i).setEnabled(false);
+            boxes.get(i).setSelected(false);
         }
     } 
 
@@ -105,14 +106,23 @@ class Trace{
 
     private class ListenerBox implements ActionListener{
     	public void actionPerformed(ActionEvent e){
-            AcaoCheckBox box = null;
+            JCheckBox box = null;
             for(int i=0;i<boxes.size();i++){
-                if(e.getSource() == boxes.get(i).getBox()) box = boxes.get(i);
+                if(e.getSource() == boxes.get(i)) box = boxes.get(i);
             }
-            for(int i=0;i<boxes.size();i++){
-                if(box.getGrafo() == boxes.get(i).getGrafo()){
-                    boxes.get(i).getBox().setEnabled(false);
-                    boxes.get(i).getBox().setSelected(false);
+            text_area.setText(text_area.getText()+""+box.getText()+"\n");
+            disableAll();
+            for(int i=0;i<grafoArray.size();i++){
+                Vertice v = grafoArray.get(i).inAtual(box.getText());
+                if(v != null){
+                    grafoArray.get(i).setAtual(new ArrayList<Vertice>());
+                    ArrayList<Aresta> arestas = v.getArestas();
+                    for(int j=0;j<arestas.size();j++){
+                        ArrayList<Vertice> vertices = arestas.get(j).getVertices();
+                        for(int k=0;k<vertices.size();k++){
+                            grafoArray.get(i).getAtual().add(vertices.get(k));
+                        }
+                    }
                 }
             }
     		for(int i=0;i<boxes.size();i++){
@@ -159,24 +169,11 @@ class Trace{
         }
     }
 
-    public ArrayList<AcaoCheckBox> getBoxes(){
+    public ArrayList<JCheckBox> getBoxes(){
         return this.boxes;
     }
 
-    public boolean allAcao(String nome){
-        for(int i=0;i<boxes.size();i++){
-            if(boxes.get(i).getAcao().getNome().equals(nome) && !boxes.get(i).getCompartilhada()) return false;
-        }
-        for(int i=0;i<boxes.size();i++){
-            if(boxes.get(i).getAcao().getNome().equals(nome)){
-                boxes.get(i).setCompartilhada(false);
-                boxes.get(i).getBox().setEnabled(true);
-            }
-        }
-        return true;
-    }
-
-    private boolean atualizaInterface(AcaoCheckBox box){
+    /*private boolean atualizaInterface(AcaoCheckBox box){
         HiperGrafo grafo;
         Acao a = box.getAcao();
         for(int cont=0;cont<grafoArray.size();cont++){
@@ -209,11 +206,14 @@ class Trace{
             }
         }
         return false;
-    }
+    }*/
 
-    public void addCheckBox(Acao acao, HiperGrafo grafo){
-        if(acao.getNome().equals("STOP") || acao.getNome().equals("ERROR")) return;
-		boxes.add(new AcaoCheckBox(acao, new JCheckBox(acao.getNome()+(acao.getValorIndice() == -1 ? "" : "["+acao.getValorIndice()+"]")), grafo));
+    public void addCheckBox(String nome){
+        if(nome.equals("STOP") || nome.equals("ERROR")) return;
+        for(int i=0;i<boxes.size();i++){
+            if(boxes.get(i).getText().equals(nome)) return;
+        }
+		boxes.add(new JCheckBox(nome));
 	}
 } 
 
