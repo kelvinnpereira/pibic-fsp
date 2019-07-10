@@ -121,6 +121,7 @@ class Trace{
                         generator.getPthreadArray().get(i).getTraceArray().add(new Acao(stop_error.getNome(), null));
                         text_area.setText(text_area.getText()+""+stop_error.getNome()+"\n");
                         last = stop_error.getNome();
+                        disableAll();
                         return;
                     }
                     grafoArray.get(i).setAtual(new ArrayList<Vertice>());
@@ -131,11 +132,10 @@ class Trace{
                             grafoArray.get(i).getAtual().add(vertices.get(k));
                         }
                     }
-                    if(atualizaInterface(v)){
-                        disableAll();
-                        break;
-                    }
                 }
+            }
+            for(int i=0;i<boxes.size();i++){
+                if(inAtual(boxes.get(i))) atualizaInterface(boxes.get(i));
             }
             last = box.getText();
 	    }
@@ -167,7 +167,7 @@ class Trace{
         return this.boxes;
     }
 
-    private boolean atualizaInterface(Vertice vertice){
+    private void atualizaInterface(JCheckBox box){
         HiperGrafo grafo;
         for(int cont=0;cont<grafoArray.size();cont++){
             grafo = grafoArray.get(cont);
@@ -188,7 +188,6 @@ class Trace{
                 }
             }
         }
-        return false;
     }
 
     public boolean allAcao(Strin nome){
