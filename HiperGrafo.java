@@ -155,6 +155,7 @@ public class HiperGrafo{
     }
 
     public void renameAll(String prefix, boolean trava){
+        if(!trava) this.trava = new ArrayList<Vertice>();
         ArrayList<Vertice> v = vertices;
         for(int i=0;i<v.size();i++){
             v.get(i).setNome(prefix+v.get(i).getNome());

@@ -257,13 +257,13 @@ public class InterfaceGrafica{
         form.setLayout(null);
 
         JLabel label_nome = new JLabel("Nome: ");
-        label_nome.setBounds(0, 0, 170, 30);
+        label_nome.setBounds(10, 0, 170, 30);
         label_nome.setFont(font);
         nome = new JTextArea();
         nome.setBounds(170, 5, 350, 25);
         nome.setFont(font);
         JLabel label_matricula = new JLabel("Nº de Matricula: ");
-        label_matricula.setBounds(0, 50, 170, 30);
+        label_matricula.setBounds(10, 50, 170, 30);
         label_matricula.setFont(font);
         matricula = new JTextArea();
         matricula.setBounds(170, 55, 150, 25);

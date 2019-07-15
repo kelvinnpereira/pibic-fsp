@@ -1,3 +1,1 @@
-COIN = 	(toss -> heads -> COIN
-        |toss -> tails -> COIN
-	    ).
+COIN = (toss -> heads -> COIN | toss -> tails -> COIN).
