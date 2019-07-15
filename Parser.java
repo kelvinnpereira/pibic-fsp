@@ -74,7 +74,6 @@ public class Parser {
     public void newThread(){
         finalizaGrafo();
         pthreadArray.add(new ProcessThread(processos, constArray, rangeArray, primeiro_atual));
-        //if(errors.count > 0) System.exit(1);
         init();
     }
 
@@ -83,6 +82,7 @@ public class Parser {
             generator.setPthreadArray(pthreadArray);
             addCheckBox(pthreadArray.get(0));
         }
+		printGrafos();
         trace.setGrafoArray(grafoArray);
         trace.setGenerator(generator);
         trace.start_trace();
@@ -228,14 +228,15 @@ public class Parser {
     }
 
     public boolean buscaNome(ArrayList<HiperGrafo> grafoArray, String nome, int valor_indice, int indiceGrafo){
+		boolean flag = false;
         for(int i=0;i<grafoArray.size();i++){
             Vertice v = grafoArray.get(i).busca(nome, valor_indice);
             if(v != null && i != indiceGrafo){
                 v.setCompartilhada(true);
-                return true;
+                flag = true;
             }
         }
-        return false;
+        return flag;
     }
 
     public Acao acao_simples(String nome, Processo pa, String indice, int valor_indice){

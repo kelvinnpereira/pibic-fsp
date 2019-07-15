@@ -69,7 +69,7 @@ public class Vertice{
     }
 
     public String toString(){
-        String str = nome+", id: "+id +", estado: "+estado+", valor_indice: "+valor_indice+", shared:"+compartilhada+" --> ";
+        String str = nome+", id: "+id +", e: "+estado+", vi: "+valor_indice+", s:"+compartilhada+ ", t: "+trava+" --> ";
         for(int i=0;i<arestas.size();i++){
             str += arestas.get(i).toString();
         }

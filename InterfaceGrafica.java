@@ -73,7 +73,7 @@ class Trace{
             JCheckBox box = boxes.get(i);
             box.setEnabled(false);
             if( inAtual(box.getText()) ){
-                box.setEnabled(true);
+                atualizaInterface(box);
             }
     		box.addActionListener(listener_box);
     		panel.add(box);
@@ -117,28 +117,40 @@ class Trace{
                 if(v != null){
                     generator.getPthreadArray().get(i).getTraceArray().add(new Acao(v.getNome(), null, "", v.getValorIndice(), v.getEstado()));
                     Vertice  stop_error = v.only();
+                    grafoArray.get(i).setAtual(new ArrayList<Vertice>());
                     if(stop_error != null){
                         generator.getPthreadArray().get(i).getTraceArray().add(new Acao(stop_error.getNome(), null));
-                        text_area.setText(text_area.getText()+""+stop_error.getNome()+"\n");
+                        if(!last.equals("STOP") && !last.equals("ERROR")) text_area.setText(text_area.getText()+""+stop_error.getNome()+"\n");
                         last = stop_error.getNome();
                         disableAll();
-                        return;
-                    }
-                    grafoArray.get(i).setAtual(new ArrayList<Vertice>());
-                    ArrayList<Aresta> arestas = v.getArestas();
-                    for(int j=0;j<arestas.size();j++){
-                        ArrayList<Vertice> vertices = arestas.get(j).getVertices();
-                        for(int k=0;k<vertices.size();k++){
-                            grafoArray.get(i).getAtual().add(vertices.get(k));
+                    }else{
+                        ArrayList<Aresta> arestas = v.getArestas();
+                        for(int j=0;j<arestas.size();j++){
+                            ArrayList<Vertice> vertices = arestas.get(j).getVertices();
+                            for(int k=0;k<vertices.size();k++){
+                                grafoArray.get(i).getAtual().add(vertices.get(k));
+                            }
                         }
                     }
                 }
             }
+            if(last.equals("STOP") || last.equals("ERROR")) return;
             for(int i=0;i<boxes.size();i++){
-                if(inAtual(boxes.get(i))) atualizaInterface(boxes.get(i));
+                if(inAtual(boxes.get(i).getText())){
+                    atualizaInterface(boxes.get(i));
+                }
             }
             last = box.getText();
 	    }
+    }
+
+    private void atualizaInterface(JCheckBox box){
+        for(int i=0;i<grafoArray.size();i++){
+            if(grafoArray.get(i).inVertices(box.getText()) && grafoArray.get(i).inAtual(box.getText()) == null){
+                return;
+            }
+        }
+        box.setEnabled(true);
     }
 
     private class ListenerGenerate implements ActionListener{
@@ -165,33 +177,6 @@ class Trace{
 
     public ArrayList<JCheckBox> getBoxes(){
         return this.boxes;
-    }
-
-    private void atualizaInterface(JCheckBox box){
-        HiperGrafo grafo;
-        for(int cont=0;cont<grafoArray.size();cont++){
-            grafo = grafoArray.get(cont);
-            for(int i=0;i<grafo.getAtual().size();i++){
-                ArrayList<Aresta> arestas = v.getArestas();
-                for(int j=0;j<arestas.size();j++){
-                    ArrayList<Vertice> vertices = arestas.get(j).getVertices();
-                    for(int k=0;k<vertices.size();k++){
-                        a = boxes.get(i).getAcao();                    
-                        if(boxes.get(i).getGrafo() == grafo && a.getNome().equals(vertices.get(k).getNome()) && a.getId() == vertices.get(k).getId() && a.getEstado() == vertices.get(k).getEstado() && a.getValorIndice() == vertices.get(k).getValorIndice()){
-                            if(vertices.get(k).getCompartilhada()){
-                                if(allAcao(boxes.get(i).getAcao().getNome())) boxes.get(i).getBox().setEnabled(true);
-                            }else{
-                                boxes.get(i).setEnabled(true);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    public boolean allAcao(Strin nome){
-
     }
 
     public void addCheckBox(String nome){
@@ -356,6 +341,7 @@ public class InterfaceGrafica{
         public void actionPerformed(ActionEvent e){
             try{
                 parser.startInterface();
+                tracing.setEnabled(false);
             }catch(Exception e1){
                 System.out.println();
                 e1.printStackTrace();

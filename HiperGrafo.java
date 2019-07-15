@@ -4,12 +4,13 @@ public class HiperGrafo{
 
     private ArrayList<Vertice> vertices;
     private ArrayList<Aresta> arestas;
-    private ArrayList<Vertice> atual;
+    private ArrayList<Vertice> atual, trava;
 
     public HiperGrafo() {
         this.vertices = new ArrayList<Vertice>();
         this.arestas = new ArrayList<Aresta>();
         this.atual = new ArrayList<Vertice>();
+        this.trava = new ArrayList<Vertice>();
     }
 
     public ArrayList<Vertice> getVertices(){
@@ -34,7 +35,10 @@ public class HiperGrafo{
         if(existe != null) return existe;
         Vertice v = new Vertice(nome, id, estado, valor_indice);
         vertices.add(v);
-        if(inicio) atual.add(v);
+        if(inicio){
+            atual.add(v);
+            trava.add(v);
+        }
         return v;
     }
 
@@ -99,13 +103,19 @@ public class HiperGrafo{
         return a != null ? v2.getNome() : null;
     }
 
+    public String Atual(){
+        String str = "\n";
+        for(int i=0;i<atual.size();i++)
+            str += atual.get(i).toString() + "\n";
+        str += "\n";
+        return str;
+    }
+
     public String toString(){
         String str = "";
         for(int i=0;i<vertices.size();i++)
             str += vertices.get(i).toString() + "\n\n\n";
-        str += "\n--------------atual--------------------\n";
-        for(int i=0;i<atual.size();i++)
-            str += atual.get(i).toString() + "\n\n\n";
+        
         return str;
     }
 
@@ -148,6 +158,13 @@ public class HiperGrafo{
         int max = int_list.size()-1, min = 0;
         int i = (int)(Math.random() * ((max - min) + 1)) + min;
         return int_list.size() == 0 ? null : atual.get(int_list.get(i));
+    }
+
+    public boolean inVertices(String nome){
+        for(int i=0;i<vertices.size();i++){
+            if(vertices.get(i).getBoxName().equals(nome) && vertices.get(i).getCompartilhada()) return true;
+        }
+        return false;
     }
 
 }
