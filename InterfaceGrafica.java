@@ -44,34 +44,40 @@ class Trace{
     }
     
     public void start_trace(){
-        
+        Font font = new Font("Dialog", Font.BOLD, 16);
         trace = new JFrame("Trace");
-        trace.setSize(320, 380);
+        trace.setSize(420, 480);
         trace.setLayout(null);
+        trace.setFont(font);
         panel = new JPanel();
+        panel.setFont(font);
         scroll_panel = new JScrollPane(panel);
         listener_box = new ListenerBox();
         text_area = new JTextArea("");
+        text_area.setFont(font);
         scroll_text_area = new JScrollPane(text_area);
         generate = new JButton("Generate");
+        generate.setFont(font);
         view = new JButton("View Code");
+        view.setFont(font);
 
     	panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
-    	scroll_panel.setBounds(160, 40, 155, 265);
+    	scroll_panel.setBounds(210, 40, 205, 365);
     	
     	text_area.setEditable(false);
-    	scroll_text_area.setBounds(5, 5, 150, 300);
+    	scroll_text_area.setBounds(5, 5, 200, 400);
 
-    	generate.setBounds(190, 5, 110, 30);
+    	generate.setBounds(250, 5, 130, 30);
     	generate.addActionListener(new ListenerGenerate());
 
-        view.setBounds(100, 310, 110, 30);
+        view.setBounds(140, 410, 130, 30);
         view.setEnabled(false);
         view.addActionListener(new ListenerView());
     	
     	for(int i=0;i<boxes.size();i++){
             JCheckBox box = boxes.get(i);
             box.setEnabled(false);
+            box.setFont(font);
             if( inAtual(box.getText()) ){
                 atualizaInterface(box);
             }
@@ -97,9 +103,9 @@ class Trace{
         }
     } 
 
-    private int indexGrafo(HiperGrafo grafo){
+    private int enableAllAtual(){
         for(int i=0;i<grafoArray.size();i++){
-            if(grafoArray.get(i) == grafo) return i;
+            if(grafoArray.get(i).getAtual().size() == 0) grafoArray.get(i).setAtual(new ArrayList<Vertice>(grafoArray.get(i).getTrava()));
         }
         return -1;
     }
@@ -112,10 +118,11 @@ class Trace{
             }
             text_area.setText(text_area.getText()+""+box.getText()+"\n");
             disableAll();
+            boolean flag = true;
             for(int i=0;i<grafoArray.size();i++){
                 Vertice v = grafoArray.get(i).inAtual(box.getText());
                 if(v != null){
-                    generator.getPthreadArray().get(i).getTraceArray().add(new Acao(v.getNome(), null, "", v.getValorIndice(), v.getEstado()));
+                    generator.getPthreadArray().get(i).getTraceArray().add(new Acao(v.getNome(), null, "", v.getValorIndice(), v.getEstado(), v.getTrava()));
                     Vertice  stop_error = v.only();
                     grafoArray.get(i).setAtual(new ArrayList<Vertice>());
                     if(stop_error != null){
@@ -131,7 +138,16 @@ class Trace{
                                 grafoArray.get(i).getAtual().add(vertices.get(k));
                             }
                         }
+                        if(grafoArray.get(i).AtualETrava()){
+                            flag = false;
+                            enableAllAtual();
+                        }
                     }
+                }
+            }
+            if(flag){
+                for(int i=0;i<grafoArray.size();i++){
+                    if(grafoArray.get(i).AtualETrava()) grafoArray.get(i).setAtual(new ArrayList<Vertice>());
                 }
             }
             if(last.equals("STOP") || last.equals("ERROR")) return;

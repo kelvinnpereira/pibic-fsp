@@ -82,7 +82,6 @@ public class Parser {
             generator.setPthreadArray(pthreadArray);
             addCheckBox(pthreadArray.get(0));
         }
-		printGrafos();
         trace.setGrafoArray(grafoArray);
         trace.setGenerator(generator);
         trace.start_trace();

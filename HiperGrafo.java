@@ -25,6 +25,10 @@ public class HiperGrafo{
         this.atual = atual;
     }
 
+    public ArrayList<Vertice> getTrava(){
+        return this.trava;
+    }
+
     public ArrayList<Aresta> getAresta(){
         return this.arestas;
     }
@@ -38,8 +42,20 @@ public class HiperGrafo{
         if(inicio){
             atual.add(v);
             trava.add(v);
+            v.setTrava(true);
         }
         return v;
+    }
+
+    public boolean AtualETrava(){
+        for(int i=0;i<atual.size();i++){
+            boolean flag = false;
+            for(int j=0;j<trava.size();j++){
+                if(atual.get(i) == trava.get(j)) flag = true;
+            }
+            if(!flag) return false;
+        }
+        return true;
     }
 
     public Vertice busca(String nome){
@@ -123,11 +139,7 @@ public class HiperGrafo{
         HiperGrafo hg = new HiperGrafo();
         for(int i=0;i<this.vertices.size();i++){
             Vertice v = this.vertices.get(i);
-            hg.insereVertice(v.getNome(), v.getId(), v.getEstado(), v.getValorIndice(), false);
-        }
-        for(int i=0;i<this.atual.size();i++){
-            Vertice v = this.atual.get(i);
-            hg.atual.add(hg.busca(v.getNome(), v.getId(), v.getEstado(), v.getValorIndice()));
+            hg.insereVertice(v.getNome(), v.getId(), v.getEstado(), v.getValorIndice(), v.getTrava());
         }
         for(int i=0;i<this.vertices.size();i++){
             ArrayList<Aresta> a = this.vertices.get(i).getArestas();
@@ -146,7 +158,7 @@ public class HiperGrafo{
         ArrayList<Vertice> v = vertices;
         for(int i=0;i<v.size();i++){
             v.get(i).setNome(prefix+v.get(i).getNome());
-            v.get(i).setTrava(trava);
+            if(!trava) v.get(i).setTrava(trava);
         }
     }
 

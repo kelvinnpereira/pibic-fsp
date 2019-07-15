@@ -3,7 +3,7 @@ import java.util.ArrayList;
 
 public class Geracao{
 
-	private ArrayList<Acao> traceArray, shared;
+	private ArrayList<Acao> traceArray, shared, trava;
 	private ArrayList<ProcessThread> pthreadArray;
 	private BufferedWriter buff;
 	private File file;
@@ -15,6 +15,7 @@ public class Geracao{
 		this.pthreadArray = pthreadArray;
 		this.arquivos = new ArrayList<File>();
 		this.shared = new ArrayList<Acao>();
+		this.trava = new ArrayList<Acao>();
 		this.nomeArq = "";
 		this.composite_process_name = "Main";
 	}
