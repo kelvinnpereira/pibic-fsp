@@ -172,8 +172,7 @@ class Trace{
     private class ListenerGenerate implements ActionListener{
     	public void actionPerformed(ActionEvent e){
             generator.gerate();
-            JOptionPane pop_up = new JOptionPane();
-            pop_up.showMessageDialog(trace, "Generated Code Successful");
+            JOptionPane.showMessageDialog(trace, "Generated Code Successful");
             generate.setEnabled(false);
             if( !last.equals("ERROR") ) view.setEnabled(true);
 	    }
@@ -262,7 +261,7 @@ public class InterfaceGrafica{
         nome = new JTextArea();
         nome.setBounds(170, 5, 350, 25);
         nome.setFont(font);
-        JLabel label_matricula = new JLabel("Nº de Matricula: ");
+        JLabel label_matricula = new JLabel("N. de Matricula: ");
         label_matricula.setBounds(10, 50, 170, 30);
         label_matricula.setFont(font);
         matricula = new JTextArea();
@@ -378,11 +377,9 @@ public class InterfaceGrafica{
     private class ListenerSave implements ActionListener{
         public void actionPerformed(ActionEvent e){
             try{
-                String fsp = editor_area.getText();
                 JFileChooser chooser = new JFileChooser();
                 chooser.setDialogTitle("Save");
                 chooser.setApproveButtonText("Save");
-                JOptionPane pop_up = new JOptionPane();
                 if(chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION){
                     String path = chooser.getSelectedFile().getPath();
                     BufferedWriter buff = new BufferedWriter(new FileWriter(path));
@@ -390,7 +387,7 @@ public class InterfaceGrafica{
                     buff.append(editor_area.getText());
                     buff.close();
                 }else{
-                    pop_up.showMessageDialog(main, "No Selected Directory");
+                    JOptionPane.showMessageDialog(main, "No Selected Directory");
                 }
             }catch(Exception ex){
                 System.out.println(ex);
@@ -401,14 +398,12 @@ public class InterfaceGrafica{
     private class ListenerOpen implements ActionListener{
         public void actionPerformed(ActionEvent e){
             try{
-                String fsp = editor_area.getText();
                 JFileChooser chooser = new JFileChooser();
                 chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-                JOptionPane pop_up = new JOptionPane();
                 if(chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION){
                     editor_area.setText(new String(Files.readAllBytes(Paths.get(chooser.getSelectedFile().getPath()))));
                 }else{
-                    pop_up.showMessageDialog(main, "No Selected Directory");
+                    JOptionPane.showMessageDialog(main, "No Selected Directory");
                 }
             }catch(Exception ex){
                 System.out.println(ex);
@@ -421,6 +416,7 @@ public class InterfaceGrafica{
             try{
                 Point pt = new Point(e.getX(), e.getY());
                 JEditorPane edit_pane = (JEditorPane) e.getSource();
+                @SuppressWarnings("deprecation")
                 int pos = edit_pane.viewToModel(pt);
                 if(pos < 0) return;
                 Document doc = edit_pane.getDocument();

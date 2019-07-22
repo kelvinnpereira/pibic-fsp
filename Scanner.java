@@ -71,6 +71,7 @@ class Buffer {
 		b.file = null;
 	}
 
+	@SuppressWarnings("deprecation")
 	protected void finalize() throws Throwable {
 		super.finalize();
 		Close();
@@ -247,12 +248,13 @@ class StartStates {
 //-----------------------------------------------------------------------------------
 // Scanner
 //-----------------------------------------------------------------------------------
+@SuppressWarnings("deprecation")
 public class Scanner {
 	static final char EOL = '\n';
 	static final int  eofSym = 0;
 	static final int maxT = 42;
 	static final int noSym = 42;
-
+	
 
 	public Buffer buffer; // scanner buffer
 
@@ -264,7 +266,7 @@ public class Scanner {
 	int line;          // line number of current character
 	int oldEols;       // EOLs that appeared in a comment;
 	static final StartStates start; // maps initial token character to start state
-	static final Map literals;      // maps literal strings to literal kinds
+	static final Map<String, Integer> literals;      // maps literal strings to literal kinds
 
 	Token tokens;      // list of tokens already peeked (first token is a dummy)
 	Token pt;          // current peek token
@@ -275,7 +277,7 @@ public class Scanner {
 
 	static {
 		start = new StartStates();
-		literals = new HashMap();
+		literals = new HashMap<String, Integer>();
 		for (int i = 48; i <= 57; ++i) start.set(i, 1);
 		for (int i = 65; i <= 90; ++i) start.set(i, 2);
 		for (int i = 97; i <= 118; ++i) start.set(i, 3);
