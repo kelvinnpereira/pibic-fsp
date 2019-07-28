@@ -1,1 +1,4 @@
-google.com
+MOEDA = (lancamento->CARA
+                   |lancamento->COROA),
+CARA    = (cara->MOEDA),
+COROA = (coroa->MOEDA).

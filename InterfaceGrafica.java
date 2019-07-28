@@ -221,11 +221,14 @@ public class InterfaceGrafica{
     ArrayList<URL> urlArray = new ArrayList<URL>();
 
     InterfaceGrafica(){
+        //int x = 600, y = 500;
+        int x = 600, y = 500;
+
         Font font = new Font("Dialog", Font.BOLD, 16);
         main = new JFrame("Animator");
 
         menuBar = new JMenuBar();
-        menuBar.setBounds(0, 0, 900, 20);
+        menuBar.setBounds(0, 0, x, 20);
         fileMenu = new JMenu("File");
         fileMenu.setFont(font);
         newAction = new JMenuItem("New");
@@ -259,13 +262,13 @@ public class InterfaceGrafica{
         label_nome.setBounds(10, 0, 170, 30);
         label_nome.setFont(font);
         nome = new JTextArea();
-        nome.setBounds(170, 5, 350, 25);
+        nome.setBounds(140, 5, x-170, 25);
         nome.setFont(font);
         JLabel label_matricula = new JLabel("N. de Matricula: ");
         label_matricula.setBounds(10, 50, 170, 30);
         label_matricula.setFont(font);
         matricula = new JTextArea();
-        matricula.setBounds(170, 55, 150, 25);
+        matricula.setBounds(140, 55, 150, 25);
         matricula.setFont(font);
 
         form.add(label_nome);
@@ -281,6 +284,7 @@ public class InterfaceGrafica{
         
         editor_area = new JTextArea("A = (a->A).\nB = (b->B).\n||A_B = (A || B).");
         editor_area.setFont(font);
+        editor_area.setTabSize(4);
         output_area = new JTextArea("");
         output_area.setEditable(false);
         output_area.setFont(font);
@@ -293,20 +297,19 @@ public class InterfaceGrafica{
         tracing.setFont(font);
         tracing.setEnabled(false);
 
-        main.setSize(900, 720);
+        main.setSize(x, y);
         main.setLayout(null);
 
         editor.setLayout(null);
         output.setLayout(null);
 
-        //tabbedPane.setBounds(5, 100, 890, 460);
-        tabbedPane.setBounds(5, 150, 890, 415);
+        tabbedPane.setBounds(5, 150, x-25, y-290);
+        scroll_editor_area.setBounds(5, 5, x-40, y-330);
+        scroll_output_area.setBounds(5, 5, x-40, y-330);
 
-        scroll_editor_area.setBounds(5, 5, 880, 380);
-        scroll_output_area.setBounds(5, 5, 880, 380);
-        compile.setBounds(320, 580, 110, 30);
+        compile.setBounds(x/2-120, y-100, 110, 30);
         compile.addActionListener(new ListenerCompile());
-        tracing.setBounds(440, 580, 110, 30);
+        tracing.setBounds(x/2+10, y-100, 110, 30);
         tracing.addActionListener(new ListenerTracing());
 
         editor.add(scroll_editor_area);
@@ -426,7 +429,7 @@ public class InterfaceGrafica{
                 AttributeSet anchor = (AttributeSet) a.getAttribute(HTML.Tag.A);
                 String href = (anchor != null) ? (String) anchor.getAttribute(HTML.Attribute.HREF) : null;
                 if (href != null) {
-                    edit.setPage(new URL("file:"+System.getProperty("user.dir")+"/help/"+href));
+                    edit.setPage(getClass().getResource("/help/"+href));
                 }
             }catch(Exception ex){
                 System.out.println(ex);
@@ -442,7 +445,7 @@ public class InterfaceGrafica{
                 help.setLayout(null);
                 edit = new JEditorPane();
                 edit.setEditable(false);
-                edit.setPage(new URL("file:"+System.getProperty("user.dir")+"/help/help.html"));
+                edit.setPage(getClass().getResource("/help/help.html"));
                 edit.addMouseListener(new ListenerLink());
                 JScrollPane editorScrollPane = new JScrollPane(edit);
                 editorScrollPane.setBounds(5, 5, 880, 380);
