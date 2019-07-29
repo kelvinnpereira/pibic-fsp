@@ -10,6 +10,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.net.URL;
+import javax.swing.plaf.metal.*;
 
 class Trace{
 
@@ -220,9 +221,12 @@ public class InterfaceGrafica{
     Parser parser;
     JEditorPane edit;
     ArrayList<URL> urlArray = new ArrayList<URL>();
-    int x = 900, y = 720;
+    int x = 900, y = 600;
 
     InterfaceGrafica(){
+        try{
+            UIManager.setLookAndFeel("javax.swing.plaf.metal.MetalLookAndFeel"); 
+        }catch(Exception e){}
         Font font = new Font("Dialog", Font.BOLD, 16);
         main = new JFrame("Animator");
 
@@ -254,8 +258,9 @@ public class InterfaceGrafica{
         menuBar.add(helpMenu);
 
         form = new JPanel();
-        form.setBounds(0, 30, 700, 100);
+        form.setBounds(0, 30, x, 100);
         form.setLayout(null);
+
 
         JLabel label_nome = new JLabel("Nome: ");
         label_nome.setBounds(10, 0, 170, 30);
@@ -263,12 +268,14 @@ public class InterfaceGrafica{
         nome = new JTextArea();
         nome.setBounds(170, 5, x-200, 25);
         nome.setFont(font);
+        nome.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, Color.BLACK));
         JLabel label_matricula = new JLabel("N. de Matricula: ");
         label_matricula.setBounds(10, 50, 170, 30);
         label_matricula.setFont(font);
         matricula = new JTextArea();
         matricula.setBounds(170, 55, 150, 25);
         matricula.setFont(font);
+        matricula.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, Color.BLACK));
 
         form.add(label_nome);
         form.add(nome);
