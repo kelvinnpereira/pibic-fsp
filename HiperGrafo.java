@@ -131,7 +131,7 @@ public class HiperGrafo{
         String str = "";
         for(int i=0;i<vertices.size();i++)
             str += vertices.get(i).toString() + "\n\n\n";
-        
+        str += Atual();
         return str;
     }
 

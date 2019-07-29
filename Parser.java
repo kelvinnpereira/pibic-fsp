@@ -35,7 +35,7 @@ public class Parser {
     public ArrayList<ProcessInstance> pi;
     public Processo processo_atual, primeiro_atual;
     public Acao acao_atual;
-    public int sup, inf, valor_expr;
+    public int sup, inf, valor_expr, estado_pl;
     public String index, expressao = "", bool = "", composite_process_name = "", prefix;
     public ArrayList<HiperGrafo> grafoArray = new ArrayList<HiperGrafo>();
     public HiperGrafo grafo;
@@ -242,7 +242,7 @@ public class Parser {
     	Acao a = null;
     	if(exprBool(tiraIndice(bool, pa.getIndice(), pa.getEstado()+""))){
 	    	a = novaAcao(nome, indice, valor_indice, pa.getEstado(), pa);
-	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice(), acao_inicio);
+	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice(), acao_inicio && (pa.getEstado() == estado_pl) );
 	        ArrayList<Acao> acoes_atuais = pa.getAcoesAtuais();
 	        if(acao_inicio){
 	        	a.setInicio(true);
@@ -299,6 +299,7 @@ public class Parser {
     public void processo_local(String nome, Processo pa, int valor_indice){
     	if(exprBool(tiraIndice(bool, pa.getIndice(), pa.getEstado()+""))){
             ProcessoLocal pl = new ProcessoLocal(nome, pa.getEstado(), valor_indice);
+			estado_pl = valor_indice;
             int j = locais.lastIndexOf(pl);
             if(j == -1)
                 locais.add(pl);
@@ -445,6 +446,7 @@ public class Parser {
 	}
 
 	void primitive_process() {
+		estado_pl = -1;
 		String nome = la.val;
 		
 		Expect(2);
@@ -496,7 +498,6 @@ public class Parser {
 		
 		Expect(2);
 		Expect(20);
-		la();
 		int n = 0;
 		try{
 			n = Integer.parseInt(la.val);
