@@ -2,3 +2,9 @@ MOEDA = (lancamento->CARA
                    |lancamento->COROA),
 CARA    = (cara->MOEDA),
 COROA = (coroa->MOEDA).
+
+DRINKS  = (coin5p -> DRINK5 | coin10p -> DRINK10 | coin20p -> DRINK20),
+DRINK5  = (coin5p -> coin5p -> SUCESS | coin10p -> SUCESS | coin20p -> charge10p -> SUCESS),
+DRINK10 = (coin5p -> SUCESS | coin10p -> charge5p -> SUCESS),
+DRINK20 = (charge5p -> SUCESS),
+SUCESS  = (can -> DRINKS).

@@ -114,7 +114,8 @@ class Trace{
     	public void actionPerformed(ActionEvent e){
             JCheckBox box = null;
             for(int i=0;i<boxes.size();i++){
-                if(e.getSource() == boxes.get(i)) box = boxes.get(i);
+                if(e.getSource() == boxes.get(i)) 
+                    box = boxes.get(i);
             }
             text_area.setText(text_area.getText()+""+box.getText()+"\n");
             disableAll();
@@ -260,13 +261,13 @@ public class InterfaceGrafica{
         label_nome.setBounds(10, 0, 170, 30);
         label_nome.setFont(font);
         nome = new JTextArea();
-        nome.setBounds(140, 5, x-170, 25);
+        nome.setBounds(170, 5, x-200, 25);
         nome.setFont(font);
         JLabel label_matricula = new JLabel("N. de Matricula: ");
         label_matricula.setBounds(10, 50, 170, 30);
         label_matricula.setFont(font);
         matricula = new JTextArea();
-        matricula.setBounds(140, 55, 150, 25);
+        matricula.setBounds(170, 55, 150, 25);
         matricula.setFont(font);
 
         form.add(label_nome);

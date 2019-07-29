@@ -120,7 +120,7 @@ public class Acao{
 
     public boolean equals(Object o){
         Acao a = (Acao)o;
-        return nome.equals(a.nome) && processo.equals(a.processo);
+        return nome.equals(a.nome);
     }
 
     public String toString(){

@@ -29,8 +29,8 @@ public class Parser {
 
 	public ArrayList<Processo> processos;
     public ArrayList<ProcessoLocal> locais;
-    public ArrayList<Range> rangeArray;
-    public ArrayList<Const> constArray;
+    public ArrayList<Range> rangeArray = new ArrayList<Range>();
+    public ArrayList<Const> constArray = new ArrayList<Const>();
     public ArrayList<String> sharing_set;
     public ArrayList<ProcessInstance> pi;
     public Processo processo_atual, primeiro_atual;
@@ -51,8 +51,6 @@ public class Parser {
     public void init(){
         processos = new ArrayList<Processo>();
         locais = new ArrayList<ProcessoLocal>();
-        rangeArray = new ArrayList<Range>();
-        constArray = new ArrayList<Const>();
         processo_atual = primeiro_atual = null;
         acao_atual = null;
         inf = sup = valor_expr = -1;
@@ -130,10 +128,21 @@ public class Parser {
 
     public Acao novaAcao(String nome, String indice, int valor_indice, int estado, Processo pa){
         if(pa == null) return null;
-        Acao a = new Acao(nome, pa, indice, valor_indice, estado);
-        int i = pa.getAcoes().lastIndexOf(a), num = 0;
-        if(i != -1)
-            a.setId(pa.getAcoes().get(i).getId() + 1);
+        Acao a = new Acao(nome, pa, indice, valor_indice, estado), acao_id = null;
+        int i, j;
+		for(i=0;i<processos.size();i++){
+			j = -1;
+			j = processos.get(i).getAcoes().lastIndexOf(a);
+			if(j != -1) {
+				if(acao_id == null){
+					acao_id = processos.get(i).getAcoes().get(j);
+				}else if(processos.get(i).getAcoes().get(j).getId() > acao_id.getId()){
+					acao_id = processos.get(i).getAcoes().get(j);
+				}
+			}
+		}
+        if(acao_id != null)
+            a.setId(acao_id.getId() + 1);
         pa.getAcoes().add(a);
         return a;
     }
@@ -242,7 +251,7 @@ public class Parser {
     	Acao a = null;
     	if(exprBool(tiraIndice(bool, pa.getIndice(), pa.getEstado()+""))){
 	    	a = novaAcao(nome, indice, valor_indice, pa.getEstado(), pa);
-	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice(), acao_inicio && (pa.getEstado() == estado_pl) );
+	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice(), acao_inicio && pa == primeiro_atual);
 	        ArrayList<Acao> acoes_atuais = pa.getAcoesAtuais();
 	        if(acao_inicio){
 	        	a.setInicio(true);
@@ -303,7 +312,7 @@ public class Parser {
             int j = locais.lastIndexOf(pl);
             if(j == -1)
                 locais.add(pl);
-            vertice_atual = grafo.insereVertice(nome, 0, pa.getEstado(), valor_indice, acao_inicio);
+            vertice_atual = grafo.insereVertice(nome, 0, pa.getEstado(), valor_indice, acao_inicio && pa == primeiro_atual);
             ArrayList<Acao> acoes_atuais = pa.getAcoesAtuais();
         	for(int i=0;i<acoes_atuais.size();i++){
                 grafo.insereAdjSimetrica(grafo.busca(acoes_atuais.get(i).getNome(), acoes_atuais.get(i).getId(), acoes_atuais.get(i).getEstado(), acoes_atuais.get(i).getValorIndice()), vertice_atual);
@@ -446,7 +455,6 @@ public class Parser {
 	}
 
 	void primitive_process() {
-		estado_pl = -1;
 		String nome = la.val;
 		
 		Expect(2);
@@ -501,11 +509,16 @@ public class Parser {
 		int n = 0;
 		try{
 			n = Integer.parseInt(la.val);
+				Const c = new Const(nome, n);
+			if(constArray.contains(c)){
+				throw new Exception();
+			}
+			constArray.add(c);
 		}catch(Exception e){
+			errors.count++;
+			ig.output_area.setText(ig.output_area.getText()+"-- line "+t.line+" col "+t.col+": Cannot find const "+la.val+"\n");
 		}
-		Const c = new Const(nome, n);
-		if(!constArray.contains(c))
-		   constArray.add(c);
+		
 		
 		expr();
 	}
@@ -613,8 +626,17 @@ public class Parser {
 	void factor() {
 		if(la.val.charAt(0) >= 'A' && la.val.charAt(0) <= 'Z' )
 			try{
-		   		expressao += ""+constArray.get(constArray.indexOf(new Const(la.val, 0))).getValor();
-			}catch(Exception e){}
+				int constValue = -1;
+				for(int i=0;i<constArray.size();i++){
+					if(la.val.contains(constArray.get(i).getNome())) 
+						constValue = constArray.get(i).getValor();
+				}
+				if(constValue == -1) throw new Exception();
+		   		expressao += ""+constValue;
+			}catch(Exception e){
+				errors.count++;
+				ig.output_area.setText(ig.output_area.getText()+"-- line "+t.line+" col "+t.col+": Cannot find const "+la.val+"\n");
+			}
 		else
 		   expressao += la.val;
 		
@@ -1021,7 +1043,6 @@ public class Parser {
 		   }
 		}catch(Exception e){
 		   ig.output_area.setText(ig.output_area.getText()+"-- line "+t.line+" col "+t.col+": The action "+la.val+" can not be instantiated\n");
-		   System.exit(1);
 		}
 		
 		Expect(2);

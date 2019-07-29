@@ -120,7 +120,7 @@ public class HiperGrafo{
     }
 
     public String Atual(){
-        String str = "\n";
+        String str = "\n-------------------Atual-----------------\n";
         for(int i=0;i<atual.size();i++)
             str += atual.get(i).toString() + "\n";
         str += "\n";
