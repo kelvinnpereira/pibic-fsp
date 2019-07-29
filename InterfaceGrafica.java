@@ -219,11 +219,9 @@ public class InterfaceGrafica{
     Parser parser;
     JEditorPane edit;
     ArrayList<URL> urlArray = new ArrayList<URL>();
+    int x = 900, y = 720;
 
     InterfaceGrafica(){
-        //int x = 600, y = 500;
-        int x = 600, y = 500;
-
         Font font = new Font("Dialog", Font.BOLD, 16);
         main = new JFrame("Animator");
 
@@ -448,7 +446,7 @@ public class InterfaceGrafica{
                 edit.setPage(getClass().getResource("/help/help.html"));
                 edit.addMouseListener(new ListenerLink());
                 JScrollPane editorScrollPane = new JScrollPane(edit);
-                editorScrollPane.setBounds(5, 5, 880, 380);
+                editorScrollPane.setBounds(5, 5, x-40, y-330);
                 help.add(editorScrollPane);
                 tabbedPane.add("Help", help);
                 tabbedPane.setSelectedIndex(2);
