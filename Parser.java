@@ -41,7 +41,9 @@ public class Parser {
     public HiperGrafo grafo;
     public boolean acao_inicio, conjunto;
     public Vertice vertice_atual;
+	@SuppressWarnings("deprecation")
     private ScriptEngineManager manager = new ScriptEngineManager();
+	@SuppressWarnings("deprecation")
     private ScriptEngine eng = manager.getEngineByName("JavaScript");
     private ArrayList<ProcessThread> pthreadArray = new ArrayList<ProcessThread>(), pthreadArrayInstance = new ArrayList<ProcessThread>();
     private Geracao generator = new Geracao(pthreadArrayInstance);

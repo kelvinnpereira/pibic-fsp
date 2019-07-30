@@ -10,7 +10,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.net.URL;
-import javax.swing.plaf.metal.*;
 
 class Trace{
 
@@ -124,7 +123,9 @@ class Trace{
             for(int i=0;i<grafoArray.size();i++){
                 Vertice v = grafoArray.get(i).inAtual(box.getText());
                 if(v != null){
-                    generator.getPthreadArray().get(i).getTraceArray().add(new Acao(v.getNome(), null, "", v.getValorIndice(), v.getEstado(), v.getTrava()));
+                    Acao a = new Acao(v.getNome(), null, "", v.getValorIndice(), v.getEstado(), v.getTrava());
+                    a.setId(v.getId());
+                    generator.getPthreadArray().get(i).getTraceArray().add(a);
                     Vertice  stop_error = v.only();
                     grafoArray.get(i).setAtual(new ArrayList<Vertice>());
                     if(stop_error != null){
@@ -224,9 +225,6 @@ public class InterfaceGrafica{
     int x = 900, y = 600;
 
     InterfaceGrafica(){
-        try{
-            UIManager.setLookAndFeel("javax.swing.plaf.metal.MetalLookAndFeel"); 
-        }catch(Exception e){}
         Font font = new Font("Dialog", Font.BOLD, 16);
         main = new JFrame("Animator");
 

@@ -1,1 +1,1 @@
-TRAFFICLIGHT = ( red -> orange -> green -> orange -> TRAFFICLIGHT).
+TRAFFICLIGHT = ( red -> green -> yellow -> TRAFFICLIGHT).
