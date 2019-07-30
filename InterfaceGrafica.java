@@ -227,8 +227,8 @@ public class InterfaceGrafica{
 
     InterfaceGrafica(){
         try{
-        	for (LookAndFeelInfo info: UIManager.getInstalledLookAndFeels()) {
-                if ("com.sun.java.swing.plaf.gtk.GTKLookAndFeel".equals(info.getClassName())) {   
+        	for(LookAndFeelInfo info: UIManager.getInstalledLookAndFeels()){
+                if("com.sun.java.swing.plaf.gtk.GTKLookAndFeel".equals(info.getClassName())){   
                     UIManager.setLookAndFeel(info.getClassName());
                     break;
                 } 

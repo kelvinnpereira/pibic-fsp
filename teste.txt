@@ -1,5 +1,5 @@
 MOEDA = (lancamento->CARA
-                   |lancamento->COROA),
+                |lancamento->COROA),
 CARA    = (cara->MOEDA),
 COROA = (coroa->MOEDA).
 
