@@ -1,4 +1,5 @@
 import javax.swing.*;
+import javax.swing.UIManager.*;
 import javax.swing.event.*;
 import javax.swing.text.*;
 import javax.swing.text.html.*;
@@ -225,6 +226,14 @@ public class InterfaceGrafica{
     int x = 900, y = 600;
 
     InterfaceGrafica(){
+        try{
+        	for (LookAndFeelInfo info: UIManager.getInstalledLookAndFeels()) {
+                if ("com.sun.java.swing.plaf.gtk.GTKLookAndFeel".equals(info.getClassName())) {   
+                    UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                } 
+            }
+    	}catch(Exception ignored){}
         Font font = new Font("Dialog", Font.BOLD, 16);
         main = new JFrame("Animator");
 
