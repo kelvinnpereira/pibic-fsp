@@ -15,7 +15,7 @@ git clone https://github.com/kelvinnpereira/pibic-fsp.git
 Run FSP2JAVA tool
 
 ```
-java -jar Gerador.jar
+java -jar FSP2JAVA.jar
 ```
 ## Authors
 
