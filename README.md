@@ -6,14 +6,16 @@ FSP2JAVA is a tool that aims to facilitate the teaching of the parallel and dist
 
 Clone this repository
 
-```git clone https://github.com/kelvinnpereira/pibic-fsp.git
+```
+git clone https://github.com/kelvinnpereira/pibic-fsp.git
 ```
 
 ## Usage
 
 Run FSP2JAVA tool
 
-```java -jar Gerador.jar
+```
+java -jar Gerador.jar
 ```
 
 ## Contributing
