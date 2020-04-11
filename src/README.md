@@ -17,6 +17,11 @@ Run FSP2JAVA tool
 ```
 java -jar Gerador.jar
 ```
+## Authors
+
+* **Kelvinn Nunes** - kdsnp@icomp.ufam.edu.br
+* **Edwin Monteiro** - edwin@icomp.ufam.edu.br
+* **Raimundo Barreto** - rbarreto@icomp.ufam.edu.br
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
