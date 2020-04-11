@@ -1,6 +1,0 @@
-COUNTDOWN (N=3)   = (start->COUNTDOWN[N]),
-COUNTDOWN[i:0..N] = 
-		(when(i>0)tick->COUNTDOWN[i-1]
-   		|when(i==0) beep->STOP
-		|stop->STOP
- 		).

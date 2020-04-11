@@ -1,5 +1,0 @@
-Allocator.lts
-GolfClub.lts
-GolfClubFifo.lts
-GolfClubBounded.lts
-MasterSlave.lts

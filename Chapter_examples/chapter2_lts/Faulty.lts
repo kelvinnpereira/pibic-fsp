@@ -1,3 +1,0 @@
-FAULTY = ({red,blue,green}-> FAULTY 
-         |yellow -> candy -> FAULTY
-         ).

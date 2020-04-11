@@ -1,3 +1,0 @@
-RESOURCE = (acquire->release->RESOURCE).
-USER = (acquire->use->release->USER).
-||RESOURCE_SHARE = (a:USER || b:USER || {a,b}::RESOURCE).

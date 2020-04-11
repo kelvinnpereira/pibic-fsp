@@ -1,3 +1,0 @@
-SWITCH = OFF,
-OFF    = (on -> ON),
-ON     = (off-> OFF).

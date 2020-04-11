@@ -1,3 +1,0 @@
-BILL = (play -> meet -> STOP).
-BEN  = (work -> meet -> STOP).
-||BILL_BEN = (BILL || BEN).

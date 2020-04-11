@@ -1,3 +1,0 @@
-Mutex_fluent.lts
-SingleLaneBridge_fluent.lts
-DatabaseRing.lts
