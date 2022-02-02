@@ -1,11 +1,6 @@
-import java.io.IOException;
-import java.io.File;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptEngine;
-import javax.swing.*;
 
 COMPILER FSP $F
 
@@ -24,8 +19,6 @@ COMPILER FSP $F
     public HiperGrafo grafo;
     public boolean acao_inicio, conjunto;
     public Vertice vertice_atual;
-    private ScriptEngineManager manager = new ScriptEngineManager();
-    private ScriptEngine eng = manager.getEngineByName("JavaScript");
     private ArrayList<ProcessThread> pthreadArray = new ArrayList<ProcessThread>(), pthreadArrayInstance = new ArrayList<ProcessThread>();
     private Geracao generator = new Geracao(pthreadArrayInstance);
     private Trace trace;
@@ -195,10 +188,13 @@ COMPILER FSP $F
     }
 
     public int calcExpr(String expr){
+        p("bool: " + !expr.equals("")+"");
         if(!expr.equals("")){
             try{
+                p("expr: " + eng.eval(expr)+"");
                 return (int)eng.eval(expr);
             }catch(Exception e){
+                p("erro: " + e);
                 ig.output_area.setText(ig.output_area.getText()+"-- line "+t.line+" col "+t.col+": invalid expression "+expr+"\n");
             }
         }
@@ -385,9 +381,9 @@ start{start}.
 
 start = primitive_process | constant_declaration | range_declaration | composite_process.
 
-expr  = term  { (.expressao += la.val;.) ("+" | "-") term  }.
+expr = term  { (.expressao += la.val;.) ("+" | "-") term  }.
 
-term  = factor { (.expressao += la.val;.) ("*" | "/") factor }.
+term = factor { (.expressao += la.val;.) ("*" | "/") factor }.
 
 factor = 
 
@@ -537,6 +533,7 @@ expr
         sup = rangeArray.get(i).getSup();
     }else{
         inf = calcExpr(expressao);
+        p(inf+"");
     }
     expressao = "";
 .)
@@ -547,6 +544,7 @@ expr
 
 (.
     sup = calcExpr(expressao);
+    p(sup+"");
 .)
 
 }} "]".
@@ -567,6 +565,8 @@ lowercase_id[index_label]
 		primeiro_atual = processo_atual;
 	Processo p = processo_atual;
     if(processo_atual != null && processo_atual.getEstado() == -1 ){
+        p(inf+"");
+        p(sup+"");
     	if(inf != -1 && sup != -1){
     		if(processo_atual.getAcoesAtuais().size() > 1)
     			acao_range_index(nome, processo_atual);
@@ -664,7 +664,7 @@ uppercase_id["("parameter_list")"][index_label]
             if(i == inf) processo_atual = p;
             if(i == locais.get(indexPl).getValorIndice() && primeiro_atual == null) primeiro_atual = p;
         }
-        valor_expr = inf = sup = -1;
+        valor_expr = -1;
     }else{
         processo_atual = novoProcesso(nome, "", -1, null);
     }
@@ -677,6 +677,7 @@ uppercase_id["("parameter_list")"][index_label]
 (.
     if(la.val.equals(".")){
         newThread();
+        inf = sup = -1;
     }
 .)
 

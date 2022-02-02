@@ -1,6 +1,6 @@
 #Para arquivos Java compilados
 *.class
-#exceto para os arquivos do mathparser
+#exceto para os arquivos do mathXparser
 !*/org/mariuszgromada/math/mxparser/*
 #Para arquivos .java.old
 *.java.old
