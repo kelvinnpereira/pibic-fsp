@@ -2,6 +2,10 @@
 *.class
 #exceto para os arquivos do mathXparser
 !*/org/mariuszgromada/math/mxparser/*
+!*/org/mariuszgromada/math/mxparser/mathcollection/*
+!*/org/mariuszgromada/math/mxparser/parsertokens/*
+!*/org/mariuszgromada/math/mxparser/regressiontesting/*
+!*/org/mariuszgromada/math/mxparser/syntaxchecker/*
 #Para arquivos .java.old
 *.java.old
 #Para arquivos .frame
