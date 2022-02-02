@@ -1,6 +1,5 @@
 import javax.swing.*;
 import javax.swing.UIManager.*;
-import javax.swing.event.*;
 import javax.swing.text.*;
 import javax.swing.text.html.*;
 import java.awt.*;
@@ -359,6 +358,8 @@ public class InterfaceGrafica{
                     output_area.setText("Compile Successful");
                     tracing.setEnabled(true);
                 }else{   
+                    String s = parser.baos.toString();
+                    output_area.setText(output_area.getText() + "" + s + (s.equals("") ? "":"\n"));
                     tracing.setEnabled(false);
                 }
             }catch(Exception e1){

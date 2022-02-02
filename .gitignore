@@ -2,9 +2,14 @@
 *.class
 #Para arquivos .java.old
 *.java.old
+#Para arquivos .frame
+*.frame
 #Para o arquivo trace.txt que e sempre gerado ao compilar o Coco.jar
 trace.txt
 #Arquivo usado para testes
 teste.txt
 #Diretorio que é gerado
 Generated/
+#para os arquivos Parser.java e Scanner.java gerados pelo Coco.jar
+Parser.java
+Scanner.java

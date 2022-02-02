@@ -1,5 +1,7 @@
 import java.io.IOException;
 import java.io.File;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptEngine;
@@ -10,8 +12,8 @@ COMPILER FSP $F
 
     public ArrayList<Processo> processos;
     public ArrayList<ProcessoLocal> locais;
-    public ArrayList<Range> rangeArray;
-    public ArrayList<Const> constArray;
+    public ArrayList<Range> rangeArray = new ArrayList<Range>();
+    public ArrayList<Const> constArray = new ArrayList<Const>();
     public ArrayList<String> sharing_set;
     public ArrayList<ProcessInstance> pi;
     public Processo processo_atual, primeiro_atual;
@@ -28,12 +30,12 @@ COMPILER FSP $F
     private Geracao generator = new Geracao(pthreadArrayInstance);
     private Trace trace;
     private InterfaceGrafica ig;
+    public ByteArrayOutputStream baos;
+    public PrintStream ps;
 
     public void init(){
         processos = new ArrayList<Processo>();
         locais = new ArrayList<ProcessoLocal>();
-        rangeArray = new ArrayList<Range>();
-        constArray = new ArrayList<Const>();
         processo_atual = primeiro_atual = null;
         acao_atual = null;
         inf = sup = valor_expr = -1;
@@ -42,6 +44,9 @@ COMPILER FSP $F
         grafoArray.add(grafo);
         acao_inicio = conjunto = false;
         vertice_atual = null;
+        baos = new ByteArrayOutputStream();
+        ps = new PrintStream(baos);
+        this.errors.errorStream = ps;
     }
 
     public void setTrace(Trace trace){
@@ -55,14 +60,13 @@ COMPILER FSP $F
     public void newThread(){
         finalizaGrafo();
         pthreadArray.add(new ProcessThread(processos, constArray, rangeArray, primeiro_atual));
-        //if(errors.count > 0) System.exit(1);
         init();
     }
 
     public void startInterface(){
         if(pthreadArray.size() == 1) {
             generator.setPthreadArray(pthreadArray);
-            addCheckBox(pthreadArray.get(0), grafoArray.get(0));
+            addCheckBox(pthreadArray.get(0));
         }
         trace.setGrafoArray(grafoArray);
         trace.setGenerator(generator);
@@ -112,10 +116,21 @@ COMPILER FSP $F
 
     public Acao novaAcao(String nome, String indice, int valor_indice, int estado, Processo pa){
         if(pa == null) return null;
-        Acao a = new Acao(nome, pa, indice, valor_indice, estado);
-        int i = pa.getAcoes().lastIndexOf(a), num = 0;
-        if(i != -1)
-            a.setId(pa.getAcoes().get(i).getId() + 1);
+        Acao a = new Acao(nome, pa, indice, valor_indice, estado), acao_id = null;
+        int i, j;
+		for(i=0;i<processos.size();i++){
+			j = -1;
+			j = processos.get(i).getAcoes().lastIndexOf(a);
+			if(j != -1) {
+				if(acao_id == null){
+					acao_id = processos.get(i).getAcoes().get(j);
+				}else if(processos.get(i).getAcoes().get(j).getId() > acao_id.getId()){
+					acao_id = processos.get(i).getAcoes().get(j);
+				}
+			}
+		}
+        if(acao_id != null)
+            a.setId(acao_id.getId() + 1);
         pa.getAcoes().add(a);
         return a;
     }
@@ -223,7 +238,7 @@ COMPILER FSP $F
     	Acao a = null;
     	if(exprBool(tiraIndice(bool, pa.getIndice(), pa.getEstado()+""))){
 	    	a = novaAcao(nome, indice, valor_indice, pa.getEstado(), pa);
-	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice());
+	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice(), acao_inicio && pa == primeiro_atual);
 	        ArrayList<Acao> acoes_atuais = pa.getAcoesAtuais();
 	        if(acao_inicio){
 	        	a.setInicio(true);
@@ -283,7 +298,7 @@ COMPILER FSP $F
             int j = locais.lastIndexOf(pl);
             if(j == -1)
                 locais.add(pl);
-            vertice_atual = grafo.insereVertice(nome, 0, pa.getEstado(), valor_indice);
+            vertice_atual = grafo.insereVertice(nome, 0, pa.getEstado(), valor_indice, acao_inicio && pa == primeiro_atual);
             ArrayList<Acao> acoes_atuais = pa.getAcoesAtuais();
         	for(int i=0;i<acoes_atuais.size();i++){
                 grafo.insereAdjSimetrica(grafo.busca(acoes_atuais.get(i).getNome(), acoes_atuais.get(i).getId(), acoes_atuais.get(i).getEstado(), acoes_atuais.get(i).getValorIndice()), vertice_atual);
@@ -329,12 +344,13 @@ COMPILER FSP $F
         }
     }
 
-    public void addCheckBox(ProcessThread process, HiperGrafo hg){
+    public void addCheckBox(ProcessThread process){
         ArrayList<Processo> p = process.getProcessos();
         for(int i=0;i<p.size();i++){
             ArrayList<Acao> acoes = p.get(i).getAcoes();
             for(int j=0;j<acoes.size();j++){
-                trace.addCheckBox(acoes.get(j), hg);
+                Acao a = acoes.get(j);
+                trace.addCheckBox(a.getNome()+(a.getValorIndice() == -1 ? "" : "["+a.getValorIndice()+"]"));
             }
         }
     }
@@ -379,7 +395,10 @@ factor =
     if(la.val.charAt(0) >= 'A' && la.val.charAt(0) <= 'Z' )
         try{
             expressao += ""+constArray.get(constArray.indexOf(new Const(la.val, 0))).getValor();
-        }catch(Exception){}
+        }catch(Exception e){
+            errors.count++;
+            ig.output_area.setText(ig.output_area.getText()+"-- line "+t.line+" col "+t.col+": Cannot find const "+la.val+"\n");
+        }
     else
         expressao += la.val;
 .) 
@@ -439,11 +458,16 @@ uppercase_id "="
     int n = 0;
     try{
         n = Integer.parseInt(la.val);
+        Const c = new Const(nome, n);
+        if(constArray.contains(c)){
+            throw new Exception();
+        } else {
+            constArray.add(c);
+        }                
     }catch(Exception e){
+        errors.count++;
+        ig.output_area.setText(ig.output_area.getText()+"-- line "+t.line+" col "+t.col+": Cannot find const "+la.val+"\n");
     }
-    Const c = new Const(nome, n);
-    if(!constArray.contains(c))
-        constArray.add(c);
 .)
 
 expr.
@@ -729,7 +753,7 @@ local_process =
 
 ("STOP" | "ERROR")) .
 
-process_body = choice | local_process | condition.
+process_body = "("choice")" | choice | local_process | condition.
 
 choice = ["when("boolean_expr")"]
 
@@ -759,12 +783,12 @@ uppercase_id ["("parameter_list")"] "=" composite_body[label_visibility][relabel
                 HiperGrafo hg = (HiperGrafo) grafoArray.get(i).clone();
                 String s = (pi.get(j).share.equals("") ? "" : pi.get(j).share+"." ) + ( pi.get(j).prefix.equals("") ? "" : pi.get(j).prefix + "." );
                 p.prefix = s;
-                p.renameAll(s);
-                hg.renameAll(s);
+                p.renameAll(s, !pi.get(j).share.equals(""));
+                hg.renameAll(s, !pi.get(j).share.equals(""));
                 pthreadArrayInstance.add(p);
                 grafoArray2.add(hg);
                 buscaNome(pthreadArrayInstance, grafoArray2);
-                addCheckBox(p, hg);
+                addCheckBox(p);
             }
         }
     }
@@ -808,7 +832,6 @@ process_instance =
         }
     }catch(Exception e){
         ig.output_area.setText(ig.output_area.getText()+"-- line "+t.line+" col "+t.col+": The action "+la.val+" can not be instantiated\n");
-        System.exit(1);
     }
 .)
 

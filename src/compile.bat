@@ -1,0 +1,1 @@
+java -jar Coco.jar gramatica.atg && javac *.java && java JavaParser
