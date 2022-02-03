@@ -8,8 +8,6 @@
 !*/org/mariuszgromada/math/mxparser/syntaxchecker/*
 #Para arquivos .java.old
 *.java.old
-#Para arquivos .frame
-*.frame
 #Para o arquivo trace.txt que e sempre gerado ao compilar o Coco.jar
 trace.txt
 #Arquivo usado para testes

@@ -1,6 +1,7 @@
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import org.mariuszgromada.math.mxparser.*;
 
 COMPILER FSP $F
 
@@ -179,7 +180,9 @@ COMPILER FSP $F
     public boolean exprBool(String expr){
         if(!expr.equals("")){
             try{
-                return (boolean)eng.eval(expr);
+                Expression expr_obj = new Expression(expr);
+                int result = (int)expr_obj.calculate();
+                return (boolean) (result == 1);
             }catch(Exception e){
                 ig.output_area.setText(ig.output_area.getText()+"-- line "+t.line+" col "+t.col+": invalid expression "+expr+"\n");
             }
@@ -188,13 +191,11 @@ COMPILER FSP $F
     }
 
     public int calcExpr(String expr){
-        p("bool: " + !expr.equals("")+"");
         if(!expr.equals("")){
             try{
-                p("expr: " + eng.eval(expr)+"");
-                return (int)eng.eval(expr);
+                Expression expr_obj = new Expression(expr);
+                return (int)expr_obj.calculate();
             }catch(Exception e){
-                p("erro: " + e);
                 ig.output_area.setText(ig.output_area.getText()+"-- line "+t.line+" col "+t.col+": invalid expression "+expr+"\n");
             }
         }
@@ -270,15 +271,15 @@ COMPILER FSP $F
     }
 
     public void acao_index(String nome, int pa){
-    	Range r = processos.get(pa).getRange();
     	Acao a;
-    	for(int i=r.getInf();i<=r.getSup();i++){
+    	for(int i = inf; i <= sup; i++){
     		processo_atual = processos.get(pa);
-    		if(inf != -1 && sup != -1){
-    			if(processo_atual.getAcoesAtuais().size() > 1)
+    		if(inf != -1 && sup != -1 && processos.get(pa).getEstado() == -1){
+    			if(processo_atual.getAcoesAtuais().size() > 1) {
     				acao_range_index(nome, processo_atual);
-    			else
+                } else {
     				acao_range(nome, processos.get(pa));
+                }
     		}else{
     			a = acao_simples(nome, processos.get(pa), processos.get(pa).getIndice(), calcExpr(tiraIndice(expressao, processos.get(pa).getIndice(), processos.get(pa).getEstado()+"")));
     			processos.get(pa).setAcoesAtuais(new ArrayList<Acao>());
@@ -303,12 +304,40 @@ COMPILER FSP $F
     	}
     }
 
+    public void processo_local_range(String nome, Processo pa){
+    	for(int i = inf; i <= sup; i++){
+            if(exprBool(tiraIndice(bool, pa.getIndice(), pa.getEstado()+""))){
+                ProcessoLocal pl = new ProcessoLocal(nome, pa.getEstado(), i);
+                int j = locais.lastIndexOf(pl);
+                if(j == -1)
+                    locais.add(pl);
+                vertice_atual = grafo.insereVertice(nome, 0, pa.getEstado(), i, acao_inicio && pa == primeiro_atual);
+                ArrayList<Acao> acoes_atuais = pa.getAcoesAtuais();
+                for(j=0; j < acoes_atuais.size(); j++){
+                    if (acoes_atuais.get(j).getValorIndice() == i)
+                        grafo.insereAdjSimetrica(grafo.busca(acoes_atuais.get(j).getNome(), acoes_atuais.get(j).getId(), acoes_atuais.get(j).getEstado(), acoes_atuais.get(j).getValorIndice()), vertice_atual);
+                }
+            }
+    	}
+    }
+
+    public void processo_local_range_noindex(String nome, int pa){
+    	for(int i = inf; i <= sup; i++){
+            ArrayList<Acao> acoes_atuais = processos.get(pa).getAcoesAtuais();
+            for(int j=0; j < acoes_atuais.size(); j++){
+                if (acoes_atuais.get(j).getValorIndice() == i)
+                    grafo.insereAdjSimetrica(grafo.busca(acoes_atuais.get(j).getNome(), acoes_atuais.get(j).getId(), acoes_atuais.get(j).getEstado(), acoes_atuais.get(j).getValorIndice()), grafo.busca(nome));
+            }
+            if (processos.get(pa).getIndice() != "")
+                pa++;
+    	}
+    }
+
     public void processo_local_index(String nome, int pa){
-    	Range r = processos.get(pa).getRange();
     	int valor_expr = -1;
-    	for(int i=r.getInf();i<=r.getSup();i++){
+    	for(int i = inf; i <= sup; i++){
     		valor_expr = calcExpr(tiraIndice(expressao, processos.get(pa).getIndice(), processos.get(pa).getEstado()+""));
-            if(valor_expr >= r.getInf() && valor_expr <= r.getSup()){
+            if(valor_expr >= inf && valor_expr <= sup){
             	processo_local(nome, processos.get(pa), valor_expr);
             }else{
             	processo_local("ERROR", processos.get(pa), -1);
@@ -390,7 +419,17 @@ factor =
 (.
     if(la.val.charAt(0) >= 'A' && la.val.charAt(0) <= 'Z' )
         try{
-            expressao += ""+constArray.get(constArray.indexOf(new Const(la.val, 0))).getValor();
+            int constValue = -1;
+            for (int i = 0;i < constArray.size(); i++) {
+                if (la.val.contains(constArray.get(i).getNome())) {
+                    constValue = constArray.get(i).getValor();
+                }
+            }
+            if(constValue == -1 && !rangeArray.contains(new Range(la.val))) {
+                throw new Exception();
+            } else {
+                expressao += ""+constValue;
+            }
         }catch(Exception e){
             errors.count++;
             ig.output_area.setText(ig.output_area.getText()+"-- line "+t.line+" col "+t.col+": Cannot find const "+la.val+"\n");
@@ -527,13 +566,12 @@ expr{":"
 expr
 
 (.
-    int i = rangeArray.indexOf(new Range(la.val));
+    int i = rangeArray.indexOf(new Range(id));
     if(i != -1){
         inf = rangeArray.get(i).getInf();
         sup = rangeArray.get(i).getSup();
     }else{
         inf = calcExpr(expressao);
-        p(inf+"");
     }
     expressao = "";
 .)
@@ -544,7 +582,6 @@ expr
 
 (.
     sup = calcExpr(expressao);
-    p(sup+"");
 .)
 
 }} "]".
@@ -565,8 +602,6 @@ lowercase_id[index_label]
 		primeiro_atual = processo_atual;
 	Processo p = processo_atual;
     if(processo_atual != null && processo_atual.getEstado() == -1 ){
-        p(inf+"");
-        p(sup+"");
     	if(inf != -1 && sup != -1){
     		if(processo_atual.getAcoesAtuais().size() > 1)
     			acao_range_index(nome, processo_atual);
@@ -659,7 +694,7 @@ uppercase_id["("parameter_list")"][index_label]
     int indexPl = locais.indexOf(new ProcessoLocal(nome, -1, 0));
     if(indexPl != -1 && inf != -1 && sup != -1){
         Processo p = null;
-        for(int i=inf;i<=sup;i++){
+        for(int i = inf; i <= sup; i++){
             p = novoProcesso(nome, index, i, new Range(inf, sup));
             if(i == inf) processo_atual = p;
             if(i == locais.get(indexPl).getValorIndice() && primeiro_atual == null) primeiro_atual = p;
@@ -727,9 +762,27 @@ local_process =
 
 (.
     if(processo_atual.getEstado() == -1){
-    	processo_local(nome, processo_atual, calcExpr(tiraIndice(expressao, processo_atual.getIndice(), processo_atual.getEstado()+"")) );
+    	boolean flag = false;
+        if (inf != -1 && sup != -1) {
+            if (expressao == "") {
+                processo_local_range_noindex(nome, processos.indexOf(processo_atual));
+            } else {
+                processo_local_range(nome, processo_atual);
+            }
+        } else {
+            processo_local(nome, processo_atual, calcExpr(tiraIndice(expressao, processo_atual.getIndice(), processo_atual.getEstado()+"")) );
+        }
     }else{
-    	processo_local_index(nome, processos.indexOf(processo_atual));
+        if (inf != -1 && sup != -1) {
+            if (expressao == "") {
+                processo_local_range_noindex(nome, processos.indexOf(processo_atual));
+            } else {
+                processo_local_range(nome, processo_atual);
+            }
+                
+        } else {
+            processo_local_index(nome, processos.indexOf(processo_atual));
+        }
     }
     expressao = bool = "";
 .)
