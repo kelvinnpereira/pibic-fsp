@@ -74,13 +74,15 @@ parameter_list = parameter {","parameter}.
 
 parameter = uppercase_id "=" integer.
 
-primitive_process_body = process_body { ("->" | "|") process_body }[alphabet_extension][label_visibility][relabels].
+primitive_process_body = process_body[alphabet_extension][label_visibility][relabels].
 
 local_process = uppercase_id[index] | ("STOP" | "ERROR").
 
-process_body = choice | local_process | condition.
+process_body = "("choice")" | choice | local_process | condition.
 
-choice = ["when"boolean_expr](action_set | action) "->" process_body.
+choice = action_prefix{"|"action_prefix}.
+
+action_prefix = ["when"boolean_expr](action_set | action) "->" process_body.
 
 condition = "if" boolean_expr "then" process_body "else" process_body. 
 

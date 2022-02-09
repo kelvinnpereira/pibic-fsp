@@ -5,7 +5,7 @@ public class Acao{
     private String nome, expressao, indice;
     private ArrayList<Acao> acoes_atuais;
     private Processo processo;
-    private ProcessoLocal pl;
+    private Processo processo_local;
     private boolean inicio, compartilhada, trava;
     private int id, estado, valor_indice;
 
@@ -24,13 +24,13 @@ public class Acao{
         acoes_atuais = new ArrayList<Acao>();
     }
 
-    Acao(String nome, Processo processo, String indice, int valor_indice, int estado, boolean trava){
+    Acao(String nome, Processo processo, String indice, int valor_indice, int estado, boolean inicio){
         this.nome = nome;
         this.processo = processo;
         this.indice = indice;
         this.valor_indice = valor_indice;
         this.estado = estado;
-        this.trava = trava;
+        this.inicio = inicio;
         acoes_atuais = new ArrayList<Acao>();
     }
 
@@ -40,10 +40,6 @@ public class Acao{
 
     public void setAcoesAtuais(ArrayList<Acao> acoes_atuais){
         this.acoes_atuais = acoes_atuais;
-    }
-
-    public void setPl(ProcessoLocal pl){
-        this.pl = pl;
     }
 
     public void setExpr(String expr){
@@ -78,6 +74,14 @@ public class Acao{
         return this.processo;
     }
 
+    public Processo getProcessoLocal(){
+        return this.processo_local;
+    }
+
+    public void setProcessoLocal(Processo processo_local) {
+        this.processo_local = processo_local;
+    }
+
     public int getEstado(){
         return this.estado;
     }
@@ -92,10 +96,6 @@ public class Acao{
 
     public void setNome(String nome){
         this.nome = nome;
-    }
-
-    public ProcessoLocal getPl(){
-        return this.pl;
     }
 
     public String getIndice(){
@@ -124,13 +124,12 @@ public class Acao{
     }
 
     public String toString(){
-        return nome + "["+valor_indice+"], id:  "+id+", estado: "+estado+", "+processo.toString()+", shared: "+compartilhada;
+        return nome + "["+valor_indice+"], id:  "+id+", estado: "+estado+", "+processo.toString()+", shared: "+compartilhada + ", inicio: " + inicio;
     }
 
     public Object clone(){
         Acao a = new Acao(nome, processo, indice, valor_indice, estado);
         a.expressao = this.expressao;
-        a.pl = this.pl;
         a.inicio = this.inicio;
         a.compartilhada = this.compartilhada;
         a.id = this.id;

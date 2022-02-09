@@ -2,21 +2,15 @@ import java.util.ArrayList;
 
 public class Processo{
 
-    private String nome, indice;
-    private ArrayList<Acao> acoes, acoes_atuais;
+    private String nome;
+    private String indice;
+    private ArrayList<Acao> acoes;
+    private ArrayList<Acao> acoes_atuais;
     private int estado;
     private Range range;
 
-    Processo(String nome){
-        this(nome, "", -1, null);
-    }
-
-    Processo(String nome, int estado){
+    Processo(String nome, int estado) {
         this(nome, "", estado, null);
-    }
-
-    Processo(String nome, String indice, int estado){
-        this(nome, indice, estado, null);
     }
 
     Processo(String nome, String indice, int estado, Range range){
@@ -55,11 +49,7 @@ public class Processo{
     public Range getRange(){
         return this.range;
     }
-
-    public void setRange(Range range){
-        this.range = range;
-    }
-
+    
     public boolean equals(Object o){
         Processo p = (Processo)o;
         return nome.equals(p.nome) && estado == p.estado;
@@ -84,14 +74,17 @@ public class Processo{
     }
 
     public void printAcoes(){
-        System.out.println("acoes de "+nome);
-        for(int i=0;i<acoes.size();i++){
-            System.out.println(acoes.get(i));
+        System.out.println("acoes de " + nome);
+        for(Acao acao: acoes){
+            System.out.println(acao);
         }
     }
 
-    public void addPrefix(String prefix){
-
+    public void printAcoesAtuais(){
+        System.out.println("acoes atuais de " + nome);
+        for(Acao acao: acoes_atuais){
+            System.out.println(acao);
+        }
     }
 
     public Object clone(){

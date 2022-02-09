@@ -56,9 +56,8 @@ public class Geracao{
 	}
 
 	public boolean isPrimeiro(Processo p){
-		Processo processos;
 		for(int i=0;i<pthreadArray.size();i++){
-			if(pthreadArray.get(i).getPrimeiro() == p) return true;
+			if(pthreadArray.get(i).getPrimeiro().equals(p)) return true;
 		}
 		return false;
 	}

@@ -2,36 +2,49 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import org.mariuszgromada.math.mxparser.*;
+import java.util.Stack;
 
 COMPILER FSP $F
 
 
     public ArrayList<Processo> processos;
-    public ArrayList<ProcessoLocal> locais;
     public ArrayList<Range> rangeArray = new ArrayList<Range>();
     public ArrayList<Const> constArray = new ArrayList<Const>();
     public ArrayList<String> sharing_set;
     public ArrayList<ProcessInstance> pi;
-    public Processo processo_atual, primeiro_atual;
+    public ArrayList<Processo> processo_atual;
+    public Processo primeiro_atual;
     public Acao acao_atual;
-    public int sup, inf, valor_expr;
-    public String index, expressao = "", bool = "", composite_process_name = "", prefix;
+    public int sup;
+    public int inf;
+    public int valor_expr;
+    public boolean action_set;
+    public String index;
+    public String expressao = "";
+    public String bool = "";
+    public String composite_process_name = "";
+    public String prefix;
+    public String range_name;
     public ArrayList<HiperGrafo> grafoArray = new ArrayList<HiperGrafo>();
     public HiperGrafo grafo;
-    public boolean acao_inicio, conjunto;
+    public boolean acao_inicio;
+    public boolean conjunto;
     public Vertice vertice_atual;
-    private ArrayList<ProcessThread> pthreadArray = new ArrayList<ProcessThread>(), pthreadArrayInstance = new ArrayList<ProcessThread>();
+    private ArrayList<ProcessThread> pthreadArray = new ArrayList<ProcessThread>();
+    private ArrayList<ProcessThread> pthreadArrayInstance = new ArrayList<ProcessThread>();
     private Geracao generator = new Geracao(pthreadArrayInstance);
     private Trace trace;
     private InterfaceGrafica ig;
     public ByteArrayOutputStream baos;
     public PrintStream ps;
+    public Stack<ArrayList<Acao>> stack = new Stack<ArrayList<Acao>>();
 
     public void init(){
         processos = new ArrayList<Processo>();
-        locais = new ArrayList<ProcessoLocal>();
-        processo_atual = primeiro_atual = null;
+        processo_atual = new ArrayList<Processo>();
+        primeiro_atual = null;
         acao_atual = null;
+        action_set = false;
         inf = sup = valor_expr = -1;
         index = expressao = bool = "";
         grafo = new HiperGrafo();
@@ -85,10 +98,6 @@ COMPILER FSP $F
             System.out.println(processos.get(i));
             processos.get(i).printAcoes();
         }
-        System.out.println("\nProcessoLocal");
-        for(int i=0;i<locais.size();i++){
-            System.out.println("locais "+locais.get(i));
-        }
         System.out.println("\n"+grafo);
         System.out.println("--------------------------------------------------------------------");
     }
@@ -101,16 +110,17 @@ COMPILER FSP $F
         }
     }
 
-    public Processo novoProcesso(String nome, String indice, int valor, Range range){
-        Processo p = new Processo(nome, indice, valor, range);
+    public Processo novoProcesso(String nome, String indice, int estado, Range range){
+        Processo p = new Processo(nome, indice, estado, range);
         if(!processos.contains(p)) 
             processos.add(p);
         return p;
     }
 
-    public Acao novaAcao(String nome, String indice, int valor_indice, int estado, Processo pa){
+    public Acao novaAcao(String nome, Processo pa, String indice, int valor_indice){
         if(pa == null) return null;
-        Acao a = new Acao(nome, pa, indice, valor_indice, estado), acao_id = null;
+        Acao a = new Acao(nome, pa, indice, valor_indice, pa.getEstado(), acao_inicio);
+        Acao acao_id = null;
         int i, j;
 		for(i=0;i<processos.size();i++){
 			j = -1;
@@ -145,30 +155,19 @@ COMPILER FSP $F
     }
 
     public void finalizaGrafo(){
-        ArrayList<Vertice> vertices = grafo.getVertices();
-        int i = 0;
-        while(i<vertices.size()){
-            Vertice v = vertices.get(i);
-            int p_index = processos.indexOf(new Processo(v.getNome(), v.getValorIndice()));
-            if(!v.getNome().equals("ERROR") && !v.getNome().equals("STOP") && v.getNome().charAt(0) >= 'A' && v.getNome().charAt(0) <= 'Z'){
-                if(p_index != -1){
-                    ArrayList<Acao> acoes = processos.get(p_index).getAcoes();
-                    ArrayList<Aresta> arestas = v.getArestas();
-                    for(int a=0;a<arestas.size();a++){
-                        ArrayList<Vertice> vadj = arestas.get(a).getVertices();
-                        for(int b=0;b<vadj.size();b++){
-                            for(int j=0;j<acoes.size();j++){
-                                if(acoes.get(j).getInicio() )
-                                    grafo.insereAdj(vadj.get(b), grafo.buscaUltimo(acoes.get(j).getNome(), acoes.get(j).getId(), acoes.get(j).getEstado(), acoes.get(j).getValorIndice()), new Aresta());
-                            }
-                            vadj.get(b).remove(v);
+        for (Processo processo: processos) {
+            for (Acao acao: processo.getAcoes()) {
+                if (acao.getProcessoLocal() != null) {
+                    Processo p = processos.get(processos.indexOf(acao.getProcessoLocal()));
+                    for (Acao acao_inicio: p.getAcoes()) {
+                        if (acao_inicio.getInicio()) {
+                            Vertice v1 = grafo.busca(acao.getNome(), acao.getId(), acao.getEstado(), acao.getValorIndice());
+                            Vertice v2 = grafo.busca(acao_inicio.getNome(), acao_inicio.getId(), acao_inicio.getEstado(), acao_inicio.getValorIndice());
+                            grafo.insereAdj(v1, v2, new Aresta());
                         }
                     }
                 }
-                grafo.getVertices().remove(v);
-                i=0;
             }
-            i++;
         }
     }
 
@@ -234,116 +233,24 @@ COMPILER FSP $F
     public Acao acao_simples(String nome, Processo pa, String indice, int valor_indice){
     	Acao a = null;
     	if(exprBool(tiraIndice(bool, pa.getIndice(), pa.getEstado()+""))){
-	    	a = novaAcao(nome, indice, valor_indice, pa.getEstado(), pa);
-	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice(), acao_inicio && pa == primeiro_atual);
-	        ArrayList<Acao> acoes_atuais = pa.getAcoesAtuais();
-	        if(acao_inicio){
-	        	a.setInicio(true);
-	        }else{
-		        for(int i=0;i<acoes_atuais.size();i++){
-		            grafo.insereAdj(grafo.busca(acoes_atuais.get(i).getNome(), acoes_atuais.get(i).getId(), acoes_atuais.get(i).getEstado(), acoes_atuais.get(i).getValorIndice()), vertice_atual, new Aresta());
-		        }
-		    }
+	    	a = novaAcao(nome, pa, indice, valor_indice);
+	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice(), acao_inicio && primeiro_atual.equals(pa) );
+            for (Acao acao: pa.getAcoesAtuais()) {
+                if (!acao.getIndice().equals("")) {
+                    if (acao.getValorIndice() == a.getValorIndice()) {
+                        grafo.insereAdj(grafo.busca(acao.getNome(), acao.getId(), acao.getEstado(), acao.getValorIndice()), vertice_atual, new Aresta());
+                    }
+                } else {
+                    grafo.insereAdj(grafo.busca(acao.getNome(), acao.getId(), acao.getEstado(), acao.getValorIndice()), vertice_atual, new Aresta());
+                }
+            }
+            if (!stack.empty()) {
+                for (Acao acao: stack.peek()) {
+                    grafo.insereAdj(grafo.busca(acao.getNome(), acao.getId(), acao.getEstado(), acao.getValorIndice()), vertice_atual, new Aresta());
+                }
+            }
 	    }
 	    return a;
-    }
-
-    public void acao_range(String nome, Processo pa){
-    	ArrayList<Acao> acoes_aux = new ArrayList<Acao>();
-    	for(int i=inf;i<=sup;i++){
-    		Acao a = acao_simples(nome, pa, index, i);
-    		acoes_aux.add(a);
-    	}
-    	pa.setAcoesAtuais(acoes_aux);
-    }
-
-    public void acao_range_index(String nome, Processo pa){
-    	ArrayList<Acao> acoes_aux = new ArrayList<Acao>(), acoes_atuais = pa.getAcoesAtuais();
-    	Acao a;
-    	for(int i=inf, j=0;i<=sup;i++,j++){
-    		a = acoes_atuais.get(j);
-    		pa.setAcoesAtuais(new ArrayList<Acao>());
-    		pa.getAcoesAtuais().add(a);
-    		a = acao_simples(nome, pa, index, calcExpr(tiraIndice(expressao, index, i+"")));
-    		acoes_aux.add(a);
-    	}
-    	pa.setAcoesAtuais(acoes_aux);
-    }
-
-    public void acao_index(String nome, int pa){
-    	Acao a;
-    	for(int i = inf; i <= sup; i++){
-    		processo_atual = processos.get(pa);
-    		if(inf != -1 && sup != -1 && processos.get(pa).getEstado() == -1){
-    			if(processo_atual.getAcoesAtuais().size() > 1) {
-    				acao_range_index(nome, processo_atual);
-                } else {
-    				acao_range(nome, processos.get(pa));
-                }
-    		}else{
-    			a = acao_simples(nome, processos.get(pa), processos.get(pa).getIndice(), calcExpr(tiraIndice(expressao, processos.get(pa).getIndice(), processos.get(pa).getEstado()+"")));
-    			processos.get(pa).setAcoesAtuais(new ArrayList<Acao>());
-    			processos.get(pa).getAcoesAtuais().add(a);
-    		}
-    		pa++;
-    	}
-    }
-
-    public void processo_local(String nome, Processo pa, int valor_indice){
-    	if(exprBool(tiraIndice(bool, pa.getIndice(), pa.getEstado()+""))){
-            ProcessoLocal pl = new ProcessoLocal(nome, pa.getEstado(), valor_indice);
-            int j = locais.lastIndexOf(pl);
-            if(j == -1)
-                locais.add(pl);
-            vertice_atual = grafo.insereVertice(nome, 0, pa.getEstado(), valor_indice, acao_inicio && pa == primeiro_atual);
-            ArrayList<Acao> acoes_atuais = pa.getAcoesAtuais();
-        	for(int i=0;i<acoes_atuais.size();i++){
-                grafo.insereAdjSimetrica(grafo.busca(acoes_atuais.get(i).getNome(), acoes_atuais.get(i).getId(), acoes_atuais.get(i).getEstado(), acoes_atuais.get(i).getValorIndice()), vertice_atual);
-            }
-            pa.setAcoesAtuais(new ArrayList<Acao>());
-    	}
-    }
-
-    public void processo_local_range(String nome, Processo pa){
-    	for(int i = inf; i <= sup; i++){
-            if(exprBool(tiraIndice(bool, pa.getIndice(), pa.getEstado()+""))){
-                ProcessoLocal pl = new ProcessoLocal(nome, pa.getEstado(), i);
-                int j = locais.lastIndexOf(pl);
-                if(j == -1)
-                    locais.add(pl);
-                vertice_atual = grafo.insereVertice(nome, 0, pa.getEstado(), i, acao_inicio && pa == primeiro_atual);
-                ArrayList<Acao> acoes_atuais = pa.getAcoesAtuais();
-                for(j=0; j < acoes_atuais.size(); j++){
-                    if (acoes_atuais.get(j).getValorIndice() == i)
-                        grafo.insereAdjSimetrica(grafo.busca(acoes_atuais.get(j).getNome(), acoes_atuais.get(j).getId(), acoes_atuais.get(j).getEstado(), acoes_atuais.get(j).getValorIndice()), vertice_atual);
-                }
-            }
-    	}
-    }
-
-    public void processo_local_range_noindex(String nome, int pa){
-    	for(int i = inf; i <= sup; i++){
-            ArrayList<Acao> acoes_atuais = processos.get(pa).getAcoesAtuais();
-            for(int j=0; j < acoes_atuais.size(); j++){
-                if (acoes_atuais.get(j).getValorIndice() == i)
-                    grafo.insereAdjSimetrica(grafo.busca(acoes_atuais.get(j).getNome(), acoes_atuais.get(j).getId(), acoes_atuais.get(j).getEstado(), acoes_atuais.get(j).getValorIndice()), grafo.busca(nome));
-            }
-            if (processos.get(pa).getIndice() != "")
-                pa++;
-    	}
-    }
-
-    public void processo_local_index(String nome, int pa){
-    	int valor_expr = -1;
-    	for(int i = inf; i <= sup; i++){
-    		valor_expr = calcExpr(tiraIndice(expressao, processos.get(pa).getIndice(), processos.get(pa).getEstado()+""));
-            if(valor_expr >= inf && valor_expr <= sup){
-            	processo_local(nome, processos.get(pa), valor_expr);
-            }else{
-            	processo_local("ERROR", processos.get(pa), -1);
-            }
-            pa++;
-    	}
     }
 
     public void rename(String newName, String oldName){
@@ -369,8 +276,8 @@ COMPILER FSP $F
         }
     }
 
-    public void addCheckBox(ProcessThread process){
-        ArrayList<Processo> p = process.getProcessos();
+    public void addCheckBox(ProcessThread processo){
+        ArrayList<Processo> p = processo.getProcessos();
         for(int i=0;i<p.size();i++){
             ArrayList<Acao> acoes = p.get(i).getAcoes();
             for(int j=0;j<acoes.size();j++){
@@ -417,7 +324,7 @@ term = factor { (.expressao += la.val;.) ("*" | "/") factor }.
 factor = 
 
 (.
-    if(la.val.charAt(0) >= 'A' && la.val.charAt(0) <= 'Z' )
+    if(la.val.charAt(0) >= 'A' && la.val.charAt(0) <= 'Z')
         try{
             int constValue = -1;
             for (int i = 0;i < constArray.size(); i++) {
@@ -489,7 +396,6 @@ constant_declaration = "const"
 uppercase_id "=" 
 
 (.
-    la();
     int n = 0;
     try{
         n = Integer.parseInt(la.val);
@@ -501,11 +407,11 @@ uppercase_id "="
         }                
     }catch(Exception e){
         errors.count++;
-        ig.output_area.setText(ig.output_area.getText()+"-- line "+t.line+" col "+t.col+": Cannot find const "+la.val+"\n");
+        ig.output_area.setText(ig.output_area.getText()+"-- line "+t.line+" col "+t.col+": Const already exist "+la.val+"\n");
     }
 .)
 
-expr.
+expr (. expressao = ""; .).
 
 range_declaration = "range" 
 
@@ -520,9 +426,9 @@ uppercase_id "="
     if( isNum(la.val.charAt(0)) ){
         infLocal = Integer.parseInt(la.val);
     }else{
-        int index = constArray.indexOf(new Const(la.val, 0));
-        if(index != -1)
-            infLocal = constArray.get(index).getValor();
+        int i = constArray.indexOf(new Const(la.val, 0));
+        if(i != -1)
+            infLocal = constArray.get(i).getValor();
     }
 .)
 
@@ -533,9 +439,9 @@ expr ".."
     if( isNum(la.val.charAt(0)) ){
         supLocal = Integer.parseInt(la.val);
     }else{
-        int index = constArray.indexOf(new Const(la.val, 0));
-        if(index != -1)
-            supLocal = constArray.get(index).getValor();
+        int i = constArray.indexOf(new Const(la.val, 0));
+        if(i != -1)
+            supLocal = constArray.get(i).getValor();
     }
 .)
 expr
@@ -545,6 +451,7 @@ expr
         if(!rangeArray.contains(r))
             rangeArray.add(r);
         r = rangeArray.get(rangeArray.size()-1);
+        expressao = "";
 .)
 .
 
@@ -558,7 +465,7 @@ index = "["
 expr{":"
 
 (.
-    String id = la.val;
+    range_name = la.val;
     expressao = "";
 
 .)
@@ -566,7 +473,7 @@ expr{":"
 expr
 
 (.
-    int i = rangeArray.indexOf(new Range(id));
+    int i = rangeArray.indexOf(new Range(range_name));
     if(i != -1){
         inf = rangeArray.get(i).getInf();
         sup = rangeArray.get(i).getSup();
@@ -598,29 +505,34 @@ lowercase_id[index_label]
 
 (.
 	Acao a = null;
-	if(primeiro_atual == null)
-		primeiro_atual = processo_atual;
-	Processo p = processo_atual;
-    if(processo_atual != null && processo_atual.getEstado() == -1 ){
-    	if(inf != -1 && sup != -1){
-    		if(processo_atual.getAcoesAtuais().size() > 1)
-    			acao_range_index(nome, processo_atual);
-    		else
-    			acao_range(nome, processo_atual);
-    	}else{
-    		a = acao_simples(nome, processo_atual, processo_atual.getIndice(), calcExpr(tiraIndice(expressao, processo_atual.getIndice(), processo_atual.getEstado()+"")));
-	    	if(!la.val.equals(",")){
-	    		processo_atual.setAcoesAtuais(new ArrayList<Acao>());
-		        processo_atual.getAcoesAtuais().add(a);
-		    }
-    	}
-    }else if(processo_atual != null){
-    	acao_index(nome, processos.indexOf(processo_atual));
+	if (primeiro_atual == null) {
+		primeiro_atual = processo_atual.get(0);
     }
-    expressao = "";
+    for (Processo p: processo_atual) {
+        ArrayList<Acao> acoes_atuais = new ArrayList<Acao>();
+        if (inf != -1 && sup != -1) {
+            for (int i = inf; i <= sup; i++) {
+                a = acao_simples(nome, p, !range_name.equals("") ? index : "", i);
+                if (a != null)
+                    acoes_atuais.add(a);
+            }
+        } else if (!index.equals("") && index.charAt(0) >= 'a' && index.charAt(0) <= 'z' && !p.getIndice().equals("") && index.equals(p.getIndice())) {
+            a = acao_simples(nome, p, "", calcExpr(tiraIndice(expressao, index, p.getEstado()+"")));
+            if (a != null)
+                acoes_atuais.add(a);
+        } else {
+            a = acao_simples(nome, p, "", calcExpr(expressao));
+            if (a != null)
+                acoes_atuais.add(a);
+        }
+        if (!action_set)
+            p.setAcoesAtuais(acoes_atuais);
+
+    }
+    expressao = range_name = "";
     if(la.val.equals("->")) acao_inicio = false;
+    //for use in action_set
     acao_atual = a;
-    processo_atual = p;
 .)
 .
 
@@ -630,6 +542,7 @@ action_set =
 
 (.
 	ArrayList<Acao> acoes_atuais = new ArrayList<Acao>();
+    action_set = true;
 .)
 
 "{" action
@@ -647,7 +560,10 @@ action_set =
 } "}" 
 
 (.
-	processo_atual.setAcoesAtuais(acoes_atuais);
+    for (Processo processo: processo_atual) {
+	    processo.setAcoesAtuais(acoes_atuais);
+    }
+    action_set = false;
 .).
 
 alphabet_extension = "+"action_set.
@@ -691,20 +607,21 @@ primitive_process =
 uppercase_id["("parameter_list")"][index_label]
 
 (.
-    int indexPl = locais.indexOf(new ProcessoLocal(nome, -1, 0));
-    if(indexPl != -1 && inf != -1 && sup != -1){
-        Processo p = null;
-        for(int i = inf; i <= sup; i++){
-            p = novoProcesso(nome, index, i, new Range(inf, sup));
-            if(i == inf) processo_atual = p;
-            if(i == locais.get(indexPl).getValorIndice() && primeiro_atual == null) primeiro_atual = p;
+    int calc = expressao == "" ? -1 : (int)(new Expression(expressao)).calculate();
+    int eval = index.length() > 0 && index.charAt(0) >= 'a' && index.charAt(0) <= 'z' ? -1 : calc;
+    Processo p = null;
+    if (inf != -1 && sup != -1) {
+        for (int i = inf; i <= sup; i++) {
+            processo_atual.add(novoProcesso(nome, index, i, new Range(range_name, inf, sup)));
         }
         valor_expr = -1;
-    }else{
-        processo_atual = novoProcesso(nome, "", -1, null);
+    } else {
+        processo_atual.add(novoProcesso(nome, index, eval, null));
     }
+    if(primeiro_atual == null) primeiro_atual = processo_atual.get(0);
     acao_inicio = true;
     expressao = "";
+    inf = sup = -1;
 .)
 
 "=" ( local_process | "(" primitive_process_body ")" )
@@ -713,6 +630,8 @@ uppercase_id["("parameter_list")"][index_label]
     if(la.val.equals(".")){
         newThread();
         inf = sup = -1;
+    } else if (la.val.equals(",")) {
+        processo_atual = new ArrayList<Processo>();
     }
 .)
 
@@ -741,16 +660,7 @@ uppercase_id "="
 
 integer.
 
-primitive_process_body = process_body { 
-
-(.
-    if(la.val.equals("|")){
-        acao_inicio = true;
-        zeraAcoesAtuais();
-    }
-.)
-
-("->" | "|") process_body }[alphabet_extension][label_visibility][relabels].
+primitive_process_body = process_body[alphabet_extension][label_visibility][relabels].
 
 local_process = 
 
@@ -761,27 +671,25 @@ local_process =
 (uppercase_id[index]
 
 (.
-    if(processo_atual.getEstado() == -1){
-    	boolean flag = false;
-        if (inf != -1 && sup != -1) {
-            if (expressao == "") {
-                processo_local_range_noindex(nome, processos.indexOf(processo_atual));
-            } else {
-                processo_local_range(nome, processo_atual);
+    for (Processo processo: processo_atual) {
+        if (processo.getAcoesAtuais().size() != 0) {
+            for (Acao acao: processo.getAcoesAtuais()) {
+                int eval = -1;
+                if (!index.equals("") && index.charAt(0) >= 'a' && index.charAt(0) <= 'z') {
+                    if (processo.getIndice().equals(index)) {
+                        eval = calcExpr(tiraIndice(expressao, index, processo.getEstado()+""));
+                    } else if (acao.getIndice().equals(index)) {
+                        eval = calcExpr(tiraIndice(expressao, index, acao.getValorIndice()+""));
+                    }
+                } else {
+                    eval = calcExpr(expressao);
+                }
+                Processo p = new Processo(nome, eval);
+                acao.setProcessoLocal(p);
             }
-        } else {
-            processo_local(nome, processo_atual, calcExpr(tiraIndice(expressao, processo_atual.getIndice(), processo_atual.getEstado()+"")) );
-        }
-    }else{
-        if (inf != -1 && sup != -1) {
-            if (expressao == "") {
-                processo_local_range_noindex(nome, processos.indexOf(processo_atual));
-            } else {
-                processo_local_range(nome, processo_atual);
-            }
-                
-        } else {
-            processo_local_index(nome, processos.indexOf(processo_atual));
+        } else if(processo == primeiro_atual) {
+            Processo p = new Processo(nome, calcExpr(expressao));
+            primeiro_atual = p;
         }
     }
     expressao = bool = "";
@@ -790,26 +698,58 @@ local_process =
 | 
 
 (.
-    Acao a = null;
-    Processo p = processo_atual;
-	if(primeiro_atual == null)
-		primeiro_atual = processo_atual;
-    if( processo_atual.getEstado() == -1 ){
-		a = acao_simples(la.val, processo_atual, processo_atual.getIndice(), calcExpr(tiraIndice(expressao, processo_atual.getIndice(), processo_atual.getEstado()+"")));
-		processo_atual.setAcoesAtuais(new ArrayList<Acao>());
-        processo_atual.getAcoesAtuais().add(a);
-    }else{
-    	acao_index(la.val, processos.indexOf(processo_atual));
+    for (Processo processo: processo_atual) {
+        if (processo.getAcoesAtuais().size() != 0) {
+            for (Acao acao: processo.getAcoesAtuais()) {
+                Acao a = acao_simples(la.val, processo, processo.getIndice(), -1);
+                processo.setAcoesAtuais(new ArrayList<Acao>());
+                processo.getAcoesAtuais().add(a);
+            }
+        } else {
+            Acao a = acao_simples(la.val, processo, processo.getIndice(), -1);
+            processo.setAcoesAtuais(new ArrayList<Acao>());
+            processo.getAcoesAtuais().add(a);
+        }
     }
     expressao = bool = "";
-    processo_atual = p;
 .)
 
 ("STOP" | "ERROR")) .
 
-process_body = "("choice")" | choice | local_process | condition.
+process_body = 
 
-choice = ["when("boolean_expr")"]
+(.
+    if (la.val.equals("(")) {
+        ArrayList<Acao> acoes = new ArrayList();
+        for (Processo p: processo_atual) {
+            acoes.addAll(p.getAcoesAtuais());
+        }
+        stack.push(acoes);
+    }
+.)
+
+"("choice
+
+(.
+    if (la.val.equals(")")) {
+        stack.pop();
+    }
+.)
+
+")" | choice | local_process | condition.
+
+choice = action_prefix{
+
+(.
+    if(la.val.equals("|")){
+        acao_inicio = stack.empty();
+        zeraAcoesAtuais();
+    }
+.)
+    
+"|" action_prefix}.
+
+action_prefix = ["when("boolean_expr")"]
 
 (.
     expressao = "";
@@ -832,7 +772,8 @@ uppercase_id ["("parameter_list")"] "=" composite_body[label_visibility][relabel
     ArrayList<HiperGrafo> grafoArray2 = new ArrayList<HiperGrafo>();
     for(int i=0;i<pthreadArray.size();i++){
         for(int j=0;j<pi.size();j++){
-            if(pthreadArray.get(i).getPrimeiro().getNome().equals(pi.get(j).process)){
+            Processo processo = pthreadArray.get(i).getPrimeiro(); 
+            if(processo.getNome().equals(pi.get(j).process)){
                 ProcessThread p = (ProcessThread) pthreadArray.get(i).clone();
                 HiperGrafo hg = (HiperGrafo) grafoArray.get(i).clone();
                 String s = (pi.get(j).share.equals("") ? "" : pi.get(j).share+"." ) + ( pi.get(j).prefix.equals("") ? "" : pi.get(j).prefix + "." );
@@ -872,11 +813,14 @@ process_instance =
     try{
         boolean flag = true;
         for(int i=0;i<pthreadArray.size() && flag;i++){
-            if(la.val.equals(pthreadArray.get(i).getPrimeiro().getNome()))
+            Processo p = pthreadArray.get(i).getPrimeiro();
+            if(la.val.equals(p.getNome())) {
                 flag = false;
+            }
         }
-        if(flag)
-            new Exception();
+        if(flag) {
+            throw new Exception();
+        }
         if(sharing_set.size() > 0){
             for(int i=0;i<sharing_set.size();i++){
                 pi.add(new ProcessInstance(sharing_set.get(i), prefix, la.val));

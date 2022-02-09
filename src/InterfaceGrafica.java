@@ -37,8 +37,8 @@ class Trace{
     }
 
     public boolean inAtual(String nome){
-        for(int i=0;i<grafoArray.size();i++){
-            if(grafoArray.get(i).inAtual(nome) != null) return true;
+        for(HiperGrafo grafo: grafoArray){
+            if(grafo.inAtual(nome) != null) return true;
         }
         return false;
     }
