@@ -24,13 +24,13 @@ public class Acao{
         acoes_atuais = new ArrayList<Acao>();
     }
 
-    Acao(String nome, Processo processo, String indice, int valor_indice, int estado, boolean inicio){
+    Acao(String nome, Processo processo, String indice, int valor_indice, int estado, boolean trava){
         this.nome = nome;
         this.processo = processo;
         this.indice = indice;
         this.valor_indice = valor_indice;
         this.estado = estado;
-        this.inicio = inicio;
+        this.trava = trava;
         acoes_atuais = new ArrayList<Acao>();
     }
 

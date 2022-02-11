@@ -16,7 +16,6 @@ public class Vertice{
         this.estado = estado;
         this.valor_indice = valor_indice;
         this.arestas = new ArrayList<Aresta>();
-        this.compartilhada = compartilhada;
     }
 
     public ArrayList<Aresta> getArestas(){

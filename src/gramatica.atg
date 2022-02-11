@@ -13,6 +13,7 @@ COMPILER FSP $F
     public ArrayList<String> sharing_set;
     public ArrayList<ProcessInstance> pi;
     public ArrayList<Processo> processo_atual;
+    public ArrayList<Pair<String, String>> relabel = new ArrayList<Pair<String, String>>();
     public Processo primeiro_atual;
     public Acao acao_atual;
     public int sup;
@@ -71,9 +72,10 @@ COMPILER FSP $F
     }
 
     public void startInterface(){
-        if(pthreadArray.size() == 1) {
+        if(pthreadArrayInstance.size() == 0) {
             generator.setPthreadArray(pthreadArray);
-            addCheckBox(pthreadArray.get(0));
+            for (ProcessThread pthread: pthreadArray)
+                addCheckBox(pthread);
         }
         trace.setGrafoArray(grafoArray);
         trace.setGenerator(generator);
@@ -220,20 +222,22 @@ COMPILER FSP $F
     }
 
     public boolean buscaNome(ArrayList<HiperGrafo> grafoArray, String nome, int valor_indice, int indiceGrafo){
+        boolean flag = false;
         for(int i=0;i<grafoArray.size();i++){
             Vertice v = grafoArray.get(i).busca(nome, valor_indice);
             if(v != null && i != indiceGrafo){
                 v.setCompartilhada(true);
-                return true;
+                flag = true;
             }
         }
-        return false;
+        return flag;
     }
 
     public Acao acao_simples(String nome, Processo pa, String indice, int valor_indice){
     	Acao a = null;
     	if(exprBool(tiraIndice(bool, pa.getIndice(), pa.getEstado()+""))){
 	    	a = novaAcao(nome, pa, indice, valor_indice);
+            if (acao_inicio) a.setInicio(true);
 	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice(), acao_inicio && primeiro_atual.equals(pa) );
             for (Acao acao: pa.getAcoesAtuais()) {
                 if (!acao.getIndice().equals("")) {
@@ -253,13 +257,17 @@ COMPILER FSP $F
 	    return a;
     }
 
-    public void rename(String newName, String oldName){
+    public void rename(String newName, String oldName, ArrayList<HiperGrafo> grafoArray, ArrayList<ProcessThread> pthreadArray){
         for(int i=0;i<grafoArray.size();i++){
             ArrayList<Vertice> vertices = grafoArray.get(i).getVertices();
             for(int j=0;j<vertices.size();j++){
                 Vertice v = vertices.get(j);
-                if(v.getNome().contains(oldName) ){
+                p("newname: " + newName);
+                p("oldname: " + oldName);
+                p("current: " + v.getNome());
+                if(v.getNome().contains(oldName) && !v.getNome().contains("STOP") && !v.getNome().contains("ERROR")){
                     v.setNome(v.getNome().replace(oldName, newName));
+                    p("replace: " + v.getNome() );
                 }
             }
         }
@@ -268,7 +276,7 @@ COMPILER FSP $F
             for(int j=0;j<p.size();j++){
                 ArrayList<Acao> a = p.get(j).getAcoes();
                 for(int k=0;k<a.size();k++){
-                    if(a.get(k).getNome().contains(oldName)){
+                    if(a.get(k).getNome().contains(oldName) && !a.get(k).getNome().contains("STOP") && !a.get(k).getNome().contains("ERROR")){
                         a.get(k).setNome(a.get(k).getNome().replace(oldName, newName));
                     }
                 }
@@ -570,9 +578,11 @@ alphabet_extension = "+"action_set.
 
 label_visibility = hide_label | expose_label.
 
-hide_label = "\\" action_set.
+set = "{" lowercase_id{","lowercase_id} "}"["."lowercase_id].
 
-expose_label = "@" action_set.
+hide_label = "\\" set.
+
+expose_label = "@" set.
 
 relabels = "/" relabel_set.
 
@@ -585,18 +595,18 @@ simple_relabel =
 (.
     String newName = la.val;
 .)
-action "/" 
+
+(lowercase_id | set)
+
+"/" 
 
 (.
     String oldName = la.val;
+    relabel.add(new Pair<String, String>(newName, oldName));
+    rename(newName, oldName, grafoArray, pthreadArray);
 .)
 
-action
-
-(.
-    rename(newName, oldName);
-.)
-.
+(lowercase_id | set).
 
 primitive_process =  
 
@@ -624,7 +634,7 @@ uppercase_id["("parameter_list")"][index_label]
     inf = sup = -1;
 .)
 
-"=" ( local_process | "(" primitive_process_body ")" )
+"=" ( local_process | "("process_body")"[alphabet_extension][label_visibility][relabels] )
 
 (.
     if(la.val.equals(".")){
@@ -659,8 +669,6 @@ uppercase_id "="
 .)
 
 integer.
-
-primitive_process_body = process_body[alphabet_extension][label_visibility][relabels].
 
 local_process = 
 
@@ -766,13 +774,13 @@ composite_process = "||"
     pi = new ArrayList<ProcessInstance>();
 .)
 
-uppercase_id ["("parameter_list")"] "=" composite_body[label_visibility][relabels]"."
+uppercase_id ["("parameter_list")"] "=" composite_body[label_visibility](.la();.)[relabels]"."
 
 (.
     ArrayList<HiperGrafo> grafoArray2 = new ArrayList<HiperGrafo>();
     for(int i=0;i<pthreadArray.size();i++){
         for(int j=0;j<pi.size();j++){
-            Processo processo = pthreadArray.get(i).getPrimeiro(); 
+            Processo processo = pthreadArray.get(i).getProcessos().get(0); 
             if(processo.getNome().equals(pi.get(j).process)){
                 ProcessThread p = (ProcessThread) pthreadArray.get(i).clone();
                 HiperGrafo hg = (HiperGrafo) grafoArray.get(i).clone();
@@ -782,12 +790,17 @@ uppercase_id ["("parameter_list")"] "=" composite_body[label_visibility][relabel
                 hg.renameAll(s, !pi.get(j).share.equals(""));
                 pthreadArrayInstance.add(p);
                 grafoArray2.add(hg);
+                for (Pair pair: relabel) {
+                    rename((String)pair.getValue1(), (String)pair.getValue2(), grafoArray2, pthreadArrayInstance);
+                }
                 buscaNome(pthreadArrayInstance, grafoArray2);
                 addCheckBox(p);
             }
         }
     }
     grafoArray = grafoArray2;
+    
+    printGrafos();
 .)
 
 .
@@ -807,13 +820,13 @@ process_instance =
     prefix = "";
 .)
 
-["{"(.sharing_set.add(la.val);.)lowercase_id{","(.sharing_set.add(la.val);.)lowercase_id }"}::"][(.prefix = la.val;.)lowercase_id":"]
+["{"(.sharing_set.add(la.val);.)lowercase_id{","(.sharing_set.add(la.val);.)lowercase_id }"}::"][(.prefix = la.val;.)lowercase_id[index]":"]
 
 (.
     try{
         boolean flag = true;
         for(int i=0;i<pthreadArray.size() && flag;i++){
-            Processo p = pthreadArray.get(i).getPrimeiro();
+            Processo p = pthreadArray.get(i).getProcessos().get(0);
             if(la.val.equals(p.getNome())) {
                 flag = false;
             }
@@ -821,11 +834,15 @@ process_instance =
         if(flag) {
             throw new Exception();
         }
-        if(sharing_set.size() > 0){
+        if (sharing_set.size() > 0) {
             for(int i=0;i<sharing_set.size();i++){
                 pi.add(new ProcessInstance(sharing_set.get(i), prefix, la.val));
             }
-        }else{
+        } else if (inf != -1 && sup != -1) {
+            for (int i = inf; i <= sup; i++) {
+                pi.add(new ProcessInstance("", prefix + "[" + i + "]", la.val));
+            }
+        } else {
             pi.add(new ProcessInstance("", prefix, la.val));
         }
     }catch(Exception e){

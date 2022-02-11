@@ -110,6 +110,15 @@ class Trace{
         return -1;
     }
 
+    public boolean allAtualIsSTOP(String nome_acao) {
+        for (HiperGrafo grafo: grafoArray) {
+            Vertice v = grafo.inAtual(nome_acao);
+            System.out.println("all v: " + v);
+            if (v != null && v.only() == null) return true;
+        } 
+        return false;
+    }
+
     private class ListenerBox implements ActionListener{
     	public void actionPerformed(ActionEvent e){
             JCheckBox box = null;
@@ -120,31 +129,35 @@ class Trace{
             text_area.setText(text_area.getText()+""+box.getText()+"\n");
             disableAll();
             boolean flag = true;
+            boolean all = true;
+            Vertice stop_error = null;
             for(int i=0;i<grafoArray.size();i++){
                 Vertice v = grafoArray.get(i).inAtual(box.getText());
+                System.out.println("box: " + box.getText());
+                System.out.println("v: " + v);
                 if(v != null){
                     Acao a = new Acao(v.getNome(), null, "", v.getValorIndice(), v.getEstado(), v.getTrava());
                     a.setId(v.getId());
+                    System.out.println("teste: " + generator.getPthreadArray().size());
                     generator.getPthreadArray().get(i).getTraceArray().add(a);
-                    Vertice  stop_error = v.only();
+                    stop_error = v.only();
                     grafoArray.get(i).setAtual(new ArrayList<Vertice>());
                     if(stop_error != null){
                         generator.getPthreadArray().get(i).getTraceArray().add(new Acao(stop_error.getNome(), null));
-                        if(!last.equals("STOP") && !last.equals("ERROR")) text_area.setText(text_area.getText()+""+stop_error.getNome()+"\n");
                         last = stop_error.getNome();
-                        disableAll();
-                    }else{
-                        ArrayList<Aresta> arestas = v.getArestas();
-                        for(int j=0;j<arestas.size();j++){
-                            ArrayList<Vertice> vertices = arestas.get(j).getVertices();
-                            for(int k=0;k<vertices.size();k++){
-                                grafoArray.get(i).getAtual().add(vertices.get(k));
-                            }
+                        if (!stop_error.getCompartilhada())
+                            disableAll();
+                    }
+                    ArrayList<Aresta> arestas = v.getArestas();
+                    for(int j=0;j<arestas.size();j++){
+                        ArrayList<Vertice> vertices = arestas.get(j).getVertices();
+                        for(int k=0;k<vertices.size();k++){
+                            grafoArray.get(i).getAtual().add(vertices.get(k));
                         }
-                        if(grafoArray.get(i).AtualETrava()){
-                            flag = false;
-                            enableAllAtual();
-                        }
+                    }
+                    if(grafoArray.get(i).AtualETrava()){
+                        flag = false;
+                        enableAllAtual();
                     }
                 }
             }
@@ -153,11 +166,27 @@ class Trace{
                     if(grafoArray.get(i).AtualETrava()) grafoArray.get(i).setAtual(new ArrayList<Vertice>());
                 }
             }
-            if(last.equals("STOP") || last.equals("ERROR")) return;
+            flag = true;
+            for (HiperGrafo grafo: grafoArray) {
+                if (!grafo.isEmpty()) {
+                    ArrayList<Vertice> atual = grafo.getAtual();
+                    System.out.println("atual: " + atual.size());
+                    flag &= atual.size() == 1 && (atual.get(0).getNome().equals("STOP") || atual.get(0).getNome().equals("ERROR"));
+                }
+            }
+            if (flag) {
+                text_area.setText(text_area.getText()+""+stop_error.getNome()+"\n");
+            }
+            //if(last.equals("STOP") || last.equals("ERROR")) return;
             for(int i=0;i<boxes.size();i++){
                 if(inAtual(boxes.get(i).getText())){
                     atualizaInterface(boxes.get(i));
                 }
+            }
+            for (HiperGrafo g: grafoArray) {
+                System.out.println("-----------------------------------------");
+                System.out.println(g);
+                System.out.println("-----------------------------------------");
             }
             last = box.getText();
 	    }

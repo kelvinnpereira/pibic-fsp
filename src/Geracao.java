@@ -40,15 +40,14 @@ public class Geracao{
 		return this.composite_process_name;
 	}
 
-	public void isShared(Acao acao){
-		for(int i=0;i<pthreadArray.size();i++){
-			ArrayList<Processo> processos = pthreadArray.get(i).getProcessos();
-			for(int j=0;j<processos.size();j++){
-				ArrayList<Acao> acoes = processos.get(j).getAcoes();
-				for(int k=0;k<acoes.size();k++){
-					if(acao.getNome().equals(acoes.get(k).getNome()) && acao.getValorIndice() == acoes.get(k).getValorIndice() ){
+	public void isShared(Acao acao_arg){
+		for(ProcessThread pthread: pthreadArray){
+			for(Processo processo: pthread.getProcessos()){
+				for(Acao acao: processo.getAcoes()){
+					if(acao_arg.getNome().equals(acao.getNome()) && acao_arg.getValorIndice() == acao.getValorIndice() ){
+						System.out.println("is shared: " + acao_arg);
+						acao_arg.setCompartilhada(true);
 						acao.setCompartilhada(true);
-						acoes.get(k).setCompartilhada(true);
 					}
 				}
 			}

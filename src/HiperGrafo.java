@@ -21,6 +21,10 @@ public class HiperGrafo{
         return this.atual;
     }
 
+    public boolean isEmpty() {
+        return vertices.size() == 0;
+    } 
+
     public void setAtual(ArrayList<Vertice> atual){
         this.atual = atual;
     }
@@ -158,7 +162,8 @@ public class HiperGrafo{
         if(!trava) this.trava = new ArrayList<Vertice>();
         ArrayList<Vertice> v = vertices;
         for(int i=0;i<v.size();i++){
-            v.get(i).setNome(prefix+v.get(i).getNome());
+            if (!v.get(i).getNome().contains("STOP") && !v.get(i).getNome().contains("ERROR"))
+                v.get(i).setNome(prefix+v.get(i).getNome());
             if(!trava) v.get(i).setTrava(trava);
         }
     }

@@ -57,7 +57,8 @@ public class ProcessThread{
         for(int i=0;i<p.size();i++){
             ArrayList<Acao> acoes = p.get(i).getAcoes();
             for(int j=0;j<acoes.size();j++){
-                acoes.get(j).setNome(prefix+acoes.get(j).getNome());
+				if (!acoes.get(j).getNome().contains("STOP") && !acoes.get(j).getNome().contains("ERROR"))
+                	acoes.get(j).setNome(prefix+acoes.get(j).getNome());
 				acoes.get(j).setTrava(trava);
             }
         }
