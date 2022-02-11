@@ -110,15 +110,6 @@ class Trace{
         return -1;
     }
 
-    public boolean allAtualIsSTOP(String nome_acao) {
-        for (HiperGrafo grafo: grafoArray) {
-            Vertice v = grafo.inAtual(nome_acao);
-            System.out.println("all v: " + v);
-            if (v != null && v.only() == null) return true;
-        } 
-        return false;
-    }
-
     private class ListenerBox implements ActionListener{
     	public void actionPerformed(ActionEvent e){
             JCheckBox box = null;
@@ -133,12 +124,9 @@ class Trace{
             Vertice stop_error = null;
             for(int i=0;i<grafoArray.size();i++){
                 Vertice v = grafoArray.get(i).inAtual(box.getText());
-                System.out.println("box: " + box.getText());
-                System.out.println("v: " + v);
                 if(v != null){
                     Acao a = new Acao(v.getNome(), null, "", v.getValorIndice(), v.getEstado(), v.getTrava());
                     a.setId(v.getId());
-                    System.out.println("teste: " + generator.getPthreadArray().size());
                     generator.getPthreadArray().get(i).getTraceArray().add(a);
                     stop_error = v.only();
                     grafoArray.get(i).setAtual(new ArrayList<Vertice>());
@@ -170,7 +158,6 @@ class Trace{
             for (HiperGrafo grafo: grafoArray) {
                 if (!grafo.isEmpty()) {
                     ArrayList<Vertice> atual = grafo.getAtual();
-                    System.out.println("atual: " + atual.size());
                     flag &= atual.size() == 1 && (atual.get(0).getNome().equals("STOP") || atual.get(0).getNome().equals("ERROR"));
                 }
             }
@@ -182,11 +169,6 @@ class Trace{
                 if(inAtual(boxes.get(i).getText())){
                     atualizaInterface(boxes.get(i));
                 }
-            }
-            for (HiperGrafo g: grafoArray) {
-                System.out.println("-----------------------------------------");
-                System.out.println(g);
-                System.out.println("-----------------------------------------");
             }
             last = box.getText();
 	    }

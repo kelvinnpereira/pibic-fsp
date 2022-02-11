@@ -241,7 +241,7 @@ COMPILER FSP $F
 	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice(), acao_inicio && primeiro_atual.equals(pa) );
             for (Acao acao: pa.getAcoesAtuais()) {
                 if (!acao.getIndice().equals("")) {
-                    if (acao.getValorIndice() == a.getValorIndice()) {
+                    if (calcExpr(tiraIndice(expressao, acao.getIndice(), acao.getValorIndice()+"")) == a.getValorIndice()) {
                         grafo.insereAdj(grafo.busca(acao.getNome(), acao.getId(), acao.getEstado(), acao.getValorIndice()), vertice_atual, new Aresta());
                     }
                 } else {
@@ -262,12 +262,8 @@ COMPILER FSP $F
             ArrayList<Vertice> vertices = grafoArray.get(i).getVertices();
             for(int j=0;j<vertices.size();j++){
                 Vertice v = vertices.get(j);
-                p("newname: " + newName);
-                p("oldname: " + oldName);
-                p("current: " + v.getNome());
                 if(v.getNome().contains(oldName) && !v.getNome().contains("STOP") && !v.getNome().contains("ERROR")){
                     v.setNome(v.getNome().replace(oldName, newName));
-                    p("replace: " + v.getNome() );
                 }
             }
         }
@@ -507,9 +503,12 @@ simple_action =
 
 (.
     String nome = la.val;
+    if (nome.equals("[")) {
+        nome = "";
+    }
 .)
 
-lowercase_id[index_label]
+[lowercase_id][index_label]
 
 (.
 	Acao a = null;
@@ -520,7 +519,9 @@ lowercase_id[index_label]
         ArrayList<Acao> acoes_atuais = new ArrayList<Acao>();
         if (inf != -1 && sup != -1) {
             for (int i = inf; i <= sup; i++) {
-                a = acao_simples(nome, p, !range_name.equals("") ? index : "", i);
+                String indice = range_name.equals("") ? "" : index;
+                int eval = indice.equals("") ? calcExpr(tiraIndice(expressao, index, i+"")) : i;
+                a = acao_simples(nome, p, indice, eval);
                 if (a != null)
                     acoes_atuais.add(a);
             }

@@ -52,6 +52,7 @@ public class HiperGrafo{
     }
 
     public boolean AtualETrava(){
+        if (atual.size() == 0) return false;
         for(int i=0;i<atual.size();i++){
             boolean flag = false;
             for(int j=0;j<trava.size();j++){
