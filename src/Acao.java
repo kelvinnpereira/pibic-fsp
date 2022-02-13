@@ -124,7 +124,7 @@ public class Acao{
     }
 
     public String toString(){
-        return nome + "["+valor_indice+"], id:  "+id+", estado: "+estado+", "+processo.toString()+", shared: "+compartilhada + ", inicio: " + inicio;
+        return nome + "["+(indice.equals("")?"":indice+"=")+valor_indice+"], id:  "+id+", estado: "+estado+", "+processo.toString()+", shared: "+compartilhada + ", inicio: " + inicio;
     }
 
     public Object clone(){

@@ -46,7 +46,7 @@ class Trace{
     public void start_trace(){
         Font font = new Font("Dialog", Font.BOLD, 16);
         trace = new JFrame("Trace");
-        trace.setSize(420, 480);
+        trace.setSize(435, 485);
         trace.setLayout(null);
         trace.setFont(font);
         panel = new JPanel();

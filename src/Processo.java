@@ -8,6 +8,7 @@ public class Processo{
     private ArrayList<Acao> acoes_atuais;
     private int estado;
     private Range range;
+    private Processo processoLocal;
 
     Processo(String nome, int estado) {
         this(nome, "", estado, null);
@@ -36,6 +37,14 @@ public class Processo{
 
     public void setAcoesAtuais(ArrayList<Acao> acoes_atuais){
         this.acoes_atuais = acoes_atuais;
+    }
+
+    public Processo getProcessoLocal() {
+        return this.processoLocal;
+    }
+
+    public void setProcessoLocal(Processo pl) {
+        this.processoLocal = pl;
     }
 
     public String getNome(){

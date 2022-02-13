@@ -160,12 +160,22 @@ COMPILER FSP $F
         for (Processo processo: processos) {
             for (Acao acao: processo.getAcoes()) {
                 if (acao.getProcessoLocal() != null) {
-                    Processo p = processos.get(processos.indexOf(acao.getProcessoLocal()));
-                    for (Acao acao_inicio: p.getAcoes()) {
-                        if (acao_inicio.getInicio()) {
-                            Vertice v1 = grafo.busca(acao.getNome(), acao.getId(), acao.getEstado(), acao.getValorIndice());
-                            Vertice v2 = grafo.busca(acao_inicio.getNome(), acao_inicio.getId(), acao_inicio.getEstado(), acao_inicio.getValorIndice());
-                            grafo.insereAdj(v1, v2, new Aresta());
+                    Processo p = null, pl = acao.getProcessoLocal();
+                    int i;
+                    do {
+                        i = processos.indexOf(pl);
+                        if (i != -1) {
+                            p = processos.get(i);
+                            pl = p.getProcessoLocal();
+                        }
+                    } while(p != null && p.getAcoes().size() == 0);
+                    if (p != null) {
+                        for (Acao acao_inicio: p.getAcoes()) {
+                            if (acao_inicio.getInicio()) {
+                                Vertice v1 = grafo.busca(acao.getNome(), acao.getId(), acao.getEstado(), acao.getValorIndice());
+                                Vertice v2 = grafo.busca(acao_inicio.getNome(), acao_inicio.getId(), acao_inicio.getEstado(), acao_inicio.getValorIndice());
+                                grafo.insereAdj(v1, v2, new Aresta());
+                            }
                         }
                     }
                 }
@@ -234,9 +244,8 @@ COMPILER FSP $F
     }
 
     public Acao acao_simples(String nome, Processo pa, String indice, int valor_indice){
-    	Acao a = null;
+    	Acao a = novaAcao(nome, pa, indice, valor_indice);
     	if(exprBool(tiraIndice(bool, pa.getIndice(), pa.getEstado()+""))){
-	    	a = novaAcao(nome, pa, indice, valor_indice);
             if (acao_inicio) a.setInicio(true);
 	        vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice(), acao_inicio && primeiro_atual.equals(pa) );
             for (Acao acao: pa.getAcoesAtuais()) {
@@ -250,11 +259,33 @@ COMPILER FSP $F
             }
             if (!stack.empty()) {
                 for (Acao acao: stack.peek()) {
-                    grafo.insereAdj(grafo.busca(acao.getNome(), acao.getId(), acao.getEstado(), acao.getValorIndice()), vertice_atual, new Aresta());
+                    if (acao.getEstado() == pa.getEstado()) {
+                        if (!acao.getIndice().equals("")) {
+                            if (calcExpr(tiraIndice(expressao, acao.getIndice(), acao.getValorIndice()+"")) == a.getValorIndice()) {
+                                grafo.insereAdj(grafo.busca(acao.getNome(), acao.getId(), acao.getEstado(), acao.getValorIndice()), vertice_atual, new Aresta());
+                            }
+                        } else {
+                            grafo.insereAdj(grafo.busca(acao.getNome(), acao.getId(), acao.getEstado(), acao.getValorIndice()), vertice_atual, new Aresta());
+                        }
+                    }
                 }
             }
-	    }
-	    return a;
+            return a;
+	    } else if(!stack.empty()) {
+            for (Acao acao: stack.peek()) {
+                if (exprBool(tiraIndice(bool, acao.getIndice(), acao.getValorIndice()+""))) {
+                    vertice_atual = grafo.insereVertice(a.getNome(), a.getId(), a.getEstado(), a.getValorIndice(), acao_inicio && primeiro_atual.equals(pa) );
+                    if (acao.getEstado() == pa.getEstado()) {
+                        if (calcExpr(tiraIndice(expressao, acao.getIndice(), acao.getValorIndice()+"")) == a.getValorIndice()) {
+                            grafo.insereAdj(grafo.busca(acao.getNome(), acao.getId(), acao.getEstado(), acao.getValorIndice()), vertice_atual, new Aresta());
+                        }
+                    }
+                }
+            }
+            return a;
+        } else {
+            return null;
+        }
     }
 
     public void rename(String newName, String oldName, ArrayList<HiperGrafo> grafoArray, ArrayList<ProcessThread> pthreadArray){
@@ -454,7 +485,6 @@ expr
         Range r = new Range(nome, infLocal, supLocal);
         if(!rangeArray.contains(r))
             rangeArray.add(r);
-        r = rangeArray.get(rangeArray.size()-1);
         expressao = "";
 .)
 .
@@ -696,9 +726,16 @@ local_process =
                 Processo p = new Processo(nome, eval);
                 acao.setProcessoLocal(p);
             }
-        } else if(processo == primeiro_atual) {
-            Processo p = new Processo(nome, calcExpr(expressao));
-            primeiro_atual = p;
+        } else {
+            int eval = -1;
+            if (!index.equals("") && index.charAt(0) >= 'a' && index.charAt(0) <= 'z') {
+                eval = calcExpr(tiraIndice(expressao, index, processo.getEstado()+""));
+            } else {
+                eval = calcExpr(expressao);
+            }
+            Processo p = new Processo(nome, eval);
+            processo.setProcessoLocal(p);
+            if(processo.equals(primeiro_atual)) primeiro_atual = p;
         }
     }
     expressao = bool = "";
@@ -733,7 +770,7 @@ process_body =
         for (Processo p: processo_atual) {
             acoes.addAll(p.getAcoesAtuais());
         }
-        stack.push(acoes);
+        if (acoes.size() > 0)stack.push(acoes);
     }
 .)
 
@@ -800,8 +837,6 @@ uppercase_id ["("parameter_list")"] "=" composite_body[label_visibility](.la();.
         }
     }
     grafoArray = grafoArray2;
-    
-    printGrafos();
 .)
 
 .
