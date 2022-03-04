@@ -11,8 +11,7 @@ public class Geracao{
 	private String nomeArq, composite_process_name;
 	private boolean stop, error;
 
-	Geracao(ArrayList<ProcessThread> pthreadArray){
-		this.pthreadArray = pthreadArray;
+	Geracao(){
 		this.arquivos = new ArrayList<File>();
 		this.shared = new ArrayList<Acao>();
 		this.trava = new ArrayList<Acao>();

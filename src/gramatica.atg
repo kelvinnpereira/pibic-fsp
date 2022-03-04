@@ -11,7 +11,6 @@ COMPILER FSP $F
     public ArrayList<Range> rangeArray = new ArrayList<Range>();
     public ArrayList<Const> constArray = new ArrayList<Const>();
     public ArrayList<String> sharing_set;
-    public ArrayList<ProcessInstance> pi;
     public ArrayList<Processo> processo_atual;
     public ArrayList<Pair<String, String>> relabel = new ArrayList<Pair<String, String>>();
     public Processo primeiro_atual;
@@ -32,10 +31,11 @@ COMPILER FSP $F
     public boolean conjunto;
     public Vertice vertice_atual;
     private ArrayList<ProcessThread> pthreadArray = new ArrayList<ProcessThread>();
-    private ArrayList<ProcessThread> pthreadArrayInstance = new ArrayList<ProcessThread>();
-    private Geracao generator = new Geracao(pthreadArrayInstance);
+    private Geracao generator = new Geracao();
     private Trace trace;
     private InterfaceGrafica ig;
+    private ArrayList<CompositeProcess> cps = new ArrayList<CompositeProcess>();
+    private CompositeProcess cp;
     public ByteArrayOutputStream baos;
     public PrintStream ps;
     public Stack<ArrayList<Acao>> stack = new Stack<ArrayList<Acao>>();
@@ -72,10 +72,19 @@ COMPILER FSP $F
     }
 
     public void startInterface(){
-        if(pthreadArrayInstance.size() == 0) {
+        if(cps.size() == 0) {
             generator.setPthreadArray(pthreadArray);
             for (ProcessThread pthread: pthreadArray)
                 addCheckBox(pthread);
+        } else {
+            int last = cps.size()-1;
+            if (last != -1) {
+                generator.setPthreadArray(cps.get(last).getPthreads());
+                for (ProcessThread pthread: cps.get(last).getPthreads()) {
+                    addCheckBox(pthread);
+                }
+                grafoArray = cps.get(last).getGrafos();
+            }
         }
         trace.setGrafoArray(grafoArray);
         trace.setGenerator(generator);
@@ -311,6 +320,33 @@ COMPILER FSP $F
         }
     }
 
+    public void rename(String newName, String oldName){
+        for (CompositeProcess cp: cps) {
+            ArrayList<HiperGrafo> grafoArray = cp.getGrafos();
+            ArrayList<ProcessThread> pthreadArray = cp.getPthreads();
+            for(int i=0;i<grafoArray.size();i++){
+                ArrayList<Vertice> vertices = grafoArray.get(i).getVertices();
+                for(int j=0;j<vertices.size();j++){
+                    Vertice v = vertices.get(j);
+                    if(v.getNome().contains(oldName) && !v.getNome().contains("STOP") && !v.getNome().contains("ERROR")){
+                        v.setNome(v.getNome().replace(oldName, newName));
+                    }
+                }
+            }
+            for(int i=0;i<pthreadArray.size();i++){
+                ArrayList<Processo> p = pthreadArray.get(i).getProcessos();
+                for(int j=0;j<p.size();j++){
+                    ArrayList<Acao> a = p.get(j).getAcoes();
+                    for(int k=0;k<a.size();k++){
+                        if(a.get(k).getNome().contains(oldName) && !a.get(k).getNome().contains("STOP") && !a.get(k).getNome().contains("ERROR")){
+                            a.get(k).setNome(a.get(k).getNome().replace(oldName, newName));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     public void addCheckBox(ProcessThread processo){
         ArrayList<Processo> p = processo.getProcessos();
         for(int i=0;i<p.size();i++){
@@ -454,54 +490,28 @@ range_declaration = "range"
     String nome = la.val;
 .)
 
-uppercase_id "=" 
+uppercase_id "=" expr 
 
 (.
-    int infLocal = -1;
-    if( isNum(la.val.charAt(0)) ){
-        infLocal = Integer.parseInt(la.val);
-    }else{
-        int i = constArray.indexOf(new Const(la.val, 0));
-        if(i != -1)
-            infLocal = constArray.get(i).getValor();
-    }
+    int infLocal = calcExpr(expressao);
+    expressao = "";
 .)
 
-expr ".." 
+".." expr
 
 (.
-    int supLocal = -1;
-    if( isNum(la.val.charAt(0)) ){
-        supLocal = Integer.parseInt(la.val);
-    }else{
-        int i = constArray.indexOf(new Const(la.val, 0));
-        if(i != -1)
-            supLocal = constArray.get(i).getValor();
-    }
-.)
-expr
-
-(.
-        Range r = new Range(nome, infLocal, supLocal);
-        if(!rangeArray.contains(r))
-            rangeArray.add(r);
-        expressao = "";
+    int supLocal = supLocal = calcExpr(expressao);
+    Range r = new Range(nome, infLocal, supLocal);
+    if(!rangeArray.contains(r))
+        rangeArray.add(r);
+    expressao = "";
 .)
 .
 
-index = "[" 
-
-(.
-    index = la.val;
-    expressao = "";
-.) 
-
-expr{":"
+range =  
 
 (.
     range_name = la.val;
-    expressao = "";
-
 .)
 
 expr
@@ -511,21 +521,29 @@ expr
     if(i != -1){
         inf = rangeArray.get(i).getInf();
         sup = rangeArray.get(i).getSup();
-    }else{
+    } else {
         inf = calcExpr(expressao);
+        expressao = "";
     }
-    expressao = "";
 .)
 
-{".."
-
-expr
+[".." expr
 
 (.
     sup = calcExpr(expressao);
+    expressao = "";
 .)
 
-}} "]".
+].
+
+index = "[" 
+
+(.
+    index = la.val;
+    expressao = "";
+.) 
+
+expr[":"range]"]".
 
 index_label = index {index}.
 
@@ -538,7 +556,7 @@ simple_action =
     }
 .)
 
-[lowercase_id][index_label]
+(lowercase_id[index_label] | index_label )
 
 (.
 	Acao a = null;
@@ -605,17 +623,39 @@ action_set =
     action_set = false;
 .).
 
-alphabet_extension = "+"action_set.
+
+
+alphabet_extension = "+""{"
+
+(.
+    String nome = la.val;
+.)
+
+lowercase_id ["[" (range | expr) "]"]
+
+(.
+    for (Processo processo: processo_atual) {
+        if (inf != -1 && sup != -1) {
+            for (int i = inf; i <= sup; i++) {
+                Acao a = novaAcao(nome, processo, "", i);
+            }
+        } else {
+            Acao a = novaAcao(nome, processo, "", calcExpr(expressao));
+        }
+    }
+.)
+
+{","lowercase_id} "}".
 
 label_visibility = hide_label | expose_label.
 
-set = "{" lowercase_id{","lowercase_id} "}"["."lowercase_id].
+set = "{" lowercase_id{","lowercase_id} "}".
 
 hide_label = "\\" set.
 
 expose_label = "@" set.
 
-relabels = "/" relabel_set.
+relabels = (.inf = sup = -1;.)"/" relabel_set.
 
 relabel_set = "{"relabel{","relabel}"}".
 
@@ -624,20 +664,119 @@ relabel = simple_relabel | "forall" index relabel_set.
 simple_relabel = 
 
 (.
+    ArrayList<Pair<String, String>> pares = new ArrayList<Pair<String, String>>();
     String newName = la.val;
 .)
 
-(lowercase_id | set)
+(lowercase_id
+    ( [index] 
+    (. 
+        int range = rangeArray.indexOf(new Range(index));
+        if(range != -1){
+            inf = rangeArray.get(range).getInf();
+            sup = rangeArray.get(range).getSup();
+        }
+        if (inf != -1 && sup != -1) {
+            for (int i = inf; i <= sup; i++) {
+                int eval = range == -1 ? calcExpr(tiraIndice(expressao, index, i+"")) : i;
+                String indice = eval == -1 && range == -1 ? "" : "[" + eval + "]";
+                pares.add(new Pair<String, String>(newName + indice, ""));
+            }
+        } else if (!expressao.equals("")) {
+            newName += "[" + expressao + "]";
+        }
+        expressao = "";
+    .) )
+    {"."
+    (.
+        if (inf != -1 && sup != -1) {
+            for (int i = inf; i <= sup; i++) {
+                pares.get(i).setValue1( pares.get(i).getValue1() + "." + la.val);
+            }
+        } else {
+            newName += "." + la.val;
+        }
+        expressao = "";
+    .)lowercase_id
+    ( [index] 
+    (. 
+        if (inf != -1 && sup != -1) {
+            for (int i = inf; i <= sup; i++) {
+                int eval = calcExpr(tiraIndice(expressao, index, i+""));
+                String indice = eval == -1 ? "" : "[" + eval + "]";
+                pares.get(i).setValue1(pares.get(i).getValue1() + indice);
+            }
+        } else if (!expressao.equals("")) {
+            newName += "[" + expressao + "]";
+        }
+        expressao = "";
+    .) )} 
+| set["."lowercase_id])
 
 "/" 
 
 (.
     String oldName = la.val;
-    relabel.add(new Pair<String, String>(newName, oldName));
-    rename(newName, oldName, grafoArray, pthreadArray);
+    
 .)
 
-(lowercase_id | set).
+(lowercase_id
+    ( [index] 
+    (. 
+        if (inf != -1 && sup != -1) {
+            for (int i = inf; i <= sup; i++) {
+                int eval = calcExpr(tiraIndice(expressao, index, i+""));
+                String indice = eval == -1 ? "" : "[" + eval + "]";
+                pares.get(i).setValue2(oldName + indice);
+            }
+        } else if (!expressao.equals("")) {
+            oldName += "[" + expressao + "]";
+        }
+        expressao = "";
+    .) )
+    {"."
+    (.
+        if (inf != -1 && sup != -1) {
+            for (int i = inf; i <= sup; i++) {
+                pares.get(i).setValue2( pares.get(i).getValue2() + "." + la.val);
+            }
+        } else {
+            oldName += "." + la.val;
+        }
+        expressao = "";
+    .)lowercase_id
+    ( [index] 
+    (. 
+        if (inf != -1 && sup != -1) {
+            for (int i = inf; i <= sup; i++) {
+                int eval = calcExpr(tiraIndice(expressao, index, i+""));
+                String indice = eval == -1 ? "" : "[" + eval + "]";
+                pares.get(i).setValue2(pares.get(i).getValue2() + indice);
+            }
+        } else if (!expressao.equals("")) {
+            oldName += "[" + expressao + "]";
+        }
+        expressao = "";
+    .) )} 
+| set["."lowercase_id])
+
+(.
+    if (pares.size() != 0) {
+        relabel.addAll(pares);
+        for (Pair par: pares) {
+            newName = (String)par.getValue1();
+            oldName = (String)par.getValue2();
+            rename(newName, oldName, grafoArray, pthreadArray);
+        }
+    } else {
+        relabel.add(new Pair<String, String>(newName, oldName));
+        rename(newName, oldName, grafoArray, pthreadArray);
+    }
+    
+    inf = sup = -1;
+.)
+
+.
 
 primitive_process =  
 
@@ -665,7 +804,7 @@ uppercase_id["("parameter_list")"][index_label]
     inf = sup = -1;
 .)
 
-"=" ( local_process | "("process_body")"[alphabet_extension][label_visibility][relabels] )
+"=" ( local_process | "("process_body")"[alphabet_extension][relabels][label_visibility] )
 
 (.
     if(la.val.equals(".")){
@@ -809,39 +948,37 @@ composite_process = "||"
 
 (.
     generator.setCPN(la.val);
-    pi = new ArrayList<ProcessInstance>();
+    cp = new CompositeProcess(la.val);
+    cps.add(cp);
 .)
 
-uppercase_id ["("parameter_list")"] "=" composite_body[label_visibility](.la();.)[relabels]"."
+uppercase_id ["("parameter_list")"] "=" composite_body[relabels][label_visibility]"."
 
 (.
-    ArrayList<HiperGrafo> grafoArray2 = new ArrayList<HiperGrafo>();
     for(int i=0;i<pthreadArray.size();i++){
-        for(int j=0;j<pi.size();j++){
+        for(int j=0;j<cp.getPis().size();j++){
             Processo processo = pthreadArray.get(i).getProcessos().get(0); 
-            if(processo.getNome().equals(pi.get(j).process)){
+            if(processo.getNome().equals(cp.getPis().get(j).process)){
                 ProcessThread p = (ProcessThread) pthreadArray.get(i).clone();
                 HiperGrafo hg = (HiperGrafo) grafoArray.get(i).clone();
-                String s = (pi.get(j).share.equals("") ? "" : pi.get(j).share+"." ) + ( pi.get(j).prefix.equals("") ? "" : pi.get(j).prefix + "." );
+                String s = (cp.getPis().get(j).share.equals("") ? "" : cp.getPis().get(j).share+"." ) + ( cp.getPis().get(j).prefix.equals("") ? "" : cp.getPis().get(j).prefix + "." );
                 p.prefix = s;
-                p.renameAll(s, !pi.get(j).share.equals(""));
-                hg.renameAll(s, !pi.get(j).share.equals(""));
-                pthreadArrayInstance.add(p);
-                grafoArray2.add(hg);
+                p.renameAll(s, !cp.getPis().get(j).share.equals(""));
+                hg.renameAll(s, !cp.getPis().get(j).share.equals(""));
+                cp.getPthreads().add(p);
+                cp.getGrafos().add(hg);
                 for (Pair pair: relabel) {
-                    rename((String)pair.getValue1(), (String)pair.getValue2(), grafoArray2, pthreadArrayInstance);
+                    rename((String)pair.getValue1(), (String)pair.getValue2(), cp.getGrafos(), cp.getPthreads());
                 }
-                buscaNome(pthreadArrayInstance, grafoArray2);
-                addCheckBox(p);
+                buscaNome(cp.getPthreads(), cp.getGrafos());
             }
         }
     }
-    grafoArray = grafoArray2;
 .)
 
 .
 
-composite_body = process_instance | parallel_list | composite_conditional | composite_replicator .
+composite_body = (process_instance | parallel_list | composite_conditional | composite_replicator)(.inf = sup = -1;.) .
 
 composite_replicator = "forall" index composite_body.
 
@@ -860,27 +997,38 @@ process_instance =
 
 (.
     try{
-        boolean flag = true;
-        for(int i=0;i<pthreadArray.size() && flag;i++){
-            Processo p = pthreadArray.get(i).getProcessos().get(0);
-            if(la.val.equals(p.getNome())) {
-                flag = false;
-            }
-        }
-        if(flag) {
-            throw new Exception();
-        }
-        if (sharing_set.size() > 0) {
-            for(int i=0;i<sharing_set.size();i++){
-                pi.add(new ProcessInstance(sharing_set.get(i), prefix, la.val));
-            }
-        } else if (inf != -1 && sup != -1) {
-            for (int i = inf; i <= sup; i++) {
-                pi.add(new ProcessInstance("", prefix + "[" + i + "]", la.val));
-            }
+        int cp_index = cps.indexOf(new CompositeProcess(la.val));
+        if (cp_index != -1) {
+            cp.concat(cps.get(cp_index));
         } else {
-            pi.add(new ProcessInstance("", prefix, la.val));
-        }
+            boolean flag = true;
+            for(int i=0;i<pthreadArray.size() && flag;i++){
+                Processo p = pthreadArray.get(i).getProcessos().get(0);
+                if(la.val.equals(p.getNome())) {
+                    flag = false;
+                }
+            }
+            if(flag) {
+                throw new Exception();
+            }
+            int range = rangeArray.indexOf(new Range(index));
+            if(range != -1){
+                inf = rangeArray.get(range).getInf();
+                sup = rangeArray.get(range).getSup();
+            }
+            if (sharing_set.size() > 0) {
+                for(int i=0;i<sharing_set.size();i++){
+                    cp.getPis().add(new ProcessInstance(sharing_set.get(i), prefix, la.val));
+                }
+            } else if (inf != -1 && sup != -1) {
+                for (int i = inf; i <= sup; i++) {
+                    cp.getPis().add(new ProcessInstance("", prefix + "[" + i + "]", la.val));
+                }
+            } else {
+                cp.getPis().add(new ProcessInstance("", prefix, la.val));
+            }
+            expressao = index = "";
+        } 
     }catch(Exception e){
         ig.output_area.setText(ig.output_area.getText()+"-- line "+t.line+" col "+t.col+": The action "+la.val+" can not be instantiated\n");
     }
